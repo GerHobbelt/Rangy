@@ -1,9 +1,6 @@
 rangy.createModule("WrappedRange", function(api, module) {
     api.requireModules( ["DomUtil", "DomRange"] );
 
-    /**
-     * @constructor
-     */
     var WrappedRange;
     var dom = api.dom;
     var util = api.util;
@@ -91,9 +88,16 @@ rangy.createModule("WrappedRange", function(api, module) {
 
         // Move the working range through the container's children, starting at the end and working backwards, until the
         // working range reaches or goes past the boundary we're interested in
+        var limit = 0;
         do {
             containerElement.insertBefore(workingNode, workingNode.previousSibling);
             workingRange.moveToElementText(workingNode);
+/*
+            log.warn("workingNode at position " + dom.getNodeIndex(workingNode) + " in " +
+                dom.inspectNode(containerElement) + ", previous sibling is " +
+                dom.inspectNode(workingNode.previousSibling) + ", next sibling is " +
+                dom.inspectNode(workingNode.nextSibling));
+*/
         } while ( (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0 &&
                 workingNode.previousSibling);
 
@@ -235,7 +239,6 @@ rangy.createModule("WrappedRange", function(api, module) {
         (function() {
             var rangeProto;
             var rangeProperties = DomRange.rangeProperties;
-            var canSetRangeStartAfterEnd;
 
             function updateRangeProperties(range) {
                 var i = rangeProperties.length, prop;
@@ -243,9 +246,11 @@ rangy.createModule("WrappedRange", function(api, module) {
                     prop = rangeProperties[i];
                     range[prop] = range.nativeRange[prop];
                 }
+                // Fix for broken collapsed property in IE 9.
+                range.collapsed = (range.startContainer === range.endContainer && range.startOffset === range.endOffset);
             }
 
-            function updateNativeRange(range, startContainer, startOffset, endContainer,endOffset) {
+            function updateNativeRange(range, startContainer, startOffset, endContainer, endOffset) {
                 var startMoved = (range.startContainer !== startContainer || range.startOffset != startOffset);
                 var endMoved = (range.endContainer !== endContainer || range.endOffset != endOffset);
 
@@ -285,25 +290,14 @@ rangy.createModule("WrappedRange", function(api, module) {
                 updateRangeProperties(this);
             };
 
-            rangeProto.deleteContents = function() {
-                this.nativeRange.deleteContents();
-                updateRangeProperties(this);
-            };
-
-            rangeProto.extractContents = function() {
-                var frag = this.nativeRange.extractContents();
-                updateRangeProperties(this);
-                return frag;
-            };
-
             rangeProto.cloneContents = function() {
                 return this.nativeRange.cloneContents();
             };
 
             // Firefox has a bug (apparently long-standing, still present in 3.6.8) that throws "Index or size is
-            // negative or greater than the allowed amount" for insertNode in some circumstances, so all browsers will
-            // have to use the Rangy's own implementation of insertNode, which works but is almost certainly slower
-            // than the native implementation.
+            // negative or greater than the allowed amount" for insertNode in some circumstances. I haven't been able to
+            // find a reliable way of detecting this, so all browsers will have to use the Rangy's own implementation of
+            // insertNode, which works but is almost certainly slower than the native implementation.
 /*
             rangeProto.insertNode = function(node) {
                 this.nativeRange.insertNode(node);
@@ -349,7 +343,6 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             try {
                 range.setStart(testTextNode, 1);
-                canSetRangeStartAfterEnd = true;
 
                 rangeProto.setStart = function(node, offset) {
                     this.nativeRange.setStart(node, offset);
@@ -370,8 +363,6 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             } catch(ex) {
                 log.info("Browser has bug (present in Firefox 2 and below) that prevents moving the start of a Range to a point after its current end. Correcting for it.");
-
-                canSetRangeStartAfterEnd = false;
 
                 rangeProto.setStart = function(node, offset) {
                     try {
@@ -431,8 +422,8 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            // Test for WebKit bug that has the beahviour of compareBoundaryPoints round the wrong way for constants
-            // START_TO_END and END_TO_START: https://bugs.webkit.org/show_bug.cgi?id=20738
+            // Test for and correct WebKit bug that has the behaviour of compareBoundaryPoints round the wrong way for
+            // constants START_TO_END and END_TO_START: https://bugs.webkit.org/show_bug.cgi?id=20738
 
             range.selectNodeContents(testTextNode);
             range.setEnd(testTextNode, 3);
@@ -442,7 +433,7 @@ rangy.createModule("WrappedRange", function(api, module) {
             range2.setEnd(testTextNode, 4);
             range2.setStart(testTextNode, 2);
 
-            if (range.compareBoundaryPoints(range.START_TO_END, range2) == -1 &
+            if (range.compareBoundaryPoints(range.START_TO_END, range2) == -1 &&
                     range.compareBoundaryPoints(range.END_TO_START, range2) == 1) {
                 // This is the wrong way round, so correct for it
                 log.info("START_TO_END and END_TO_START wrong way round. Correcting in wrapper.");
@@ -461,6 +452,38 @@ rangy.createModule("WrappedRange", function(api, module) {
                     return this.nativeRange.compareBoundaryPoints(type, range.nativeRange || range);
                 };
             }
+
+            /*--------------------------------------------------------------------------------------------------------*/
+
+            // Test for IE 9 deleteContents() and extractContents() bug and correct it. See issue 107.
+
+            var el = document.createElement("div");
+            el.innerHTML = "123";
+            var textNode = el.firstChild;
+            document.body.appendChild(el);
+
+            range.setStart(textNode, 1);
+            range.setEnd(textNode, 2);
+            range.deleteContents();
+
+            if (textNode.data == "13") {
+                // Behaviour is correct per DOM4 Range so wrap the browser's implementation of deleteContents() and
+                // extractContents()
+                rangeProto.deleteContents = function() {
+                    this.nativeRange.deleteContents();
+                    updateRangeProperties(this);
+                };
+
+                rangeProto.extractContents = function() {
+                    var frag = this.nativeRange.extractContents();
+                    updateRangeProperties(this);
+                    return frag;
+                };
+            } else {
+                log.info("Incorrect native Range deleteContents() implementation. Using Rangy's own.")
+            }
+
+            document.body.removeChild(el);
 
             /*--------------------------------------------------------------------------------------------------------*/
 
@@ -529,13 +552,7 @@ rangy.createModule("WrappedRange", function(api, module) {
     if (api.features.implementsTextRange) {
         WrappedRange.rangeToTextRange = function(range) {
             if (range.collapsed) {
-                var tr = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
-
-                log.info(dom.inspectNode(tr.parentElement()), tr.getBoundingClientRect())
-
-                return tr;
-
-                //return createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
+                return createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
             } else {
                 var startRange = createBoundaryTextRange(new DomPosition(range.startContainer, range.startOffset), true);
                 var endRange = createBoundaryTextRange(new DomPosition(range.endContainer, range.endOffset), false);
