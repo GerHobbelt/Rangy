@@ -155,12 +155,117 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertFalse(rangy.dom.hasInnerText(divs[4]));
     });
 
-    s.test("innerText 1", function(t) {
-        t.el.innerHTML = '<p>One</p><p>Two</p>';
-        t.assertEquals(rangy.innerText(t.el), "One\nTwo");
+    s.test("innerText on simple text", function(t) {
+        t.el.innerHTML = 'One Two';
+        t.assertEquals(rangy.innerText(t.el), "One Two");
     });
 
-    
+    s.test("innerText on simple text with double space", function(t) {
+        t.el.innerHTML = 'One  Two';
+        t.assertEquals(rangy.innerText(t.el), "One Two");
+    });
+
+    s.test("innerText on simple text with triple space", function(t) {
+        t.el.innerHTML = 'One   Two';
+        t.assertEquals(rangy.innerText(t.el), "One Two");
+    });
+
+    s.test("innerText on simple text with non-breaking space", function(t) {
+        t.el.innerHTML = 'One &nbsp; Two';
+        t.assertEquals(rangy.innerText(t.el), "One \u00a0 Two");
+    });
+
+    s.test("innerText on simple text with leading space", function(t) {
+        t.el.innerHTML = ' One Two';
+        t.assertEquals(rangy.innerText(t.el), "One Two");
+    });
+
+    s.test("innerText on simple text with trailing space", function(t) {
+        t.el.innerHTML = 'One Two ';
+        t.assertEquals(rangy.innerText(t.el), "One Two");
+    });
+
+    s.test("innerText on simple text with two trailing spaces", function(t) {
+        t.el.innerHTML = '1  ';
+        t.assertEquals(rangy.innerText(t.el), "1");
+    });
+
+    s.test("innerText on simple text with leading space in span", function(t) {
+        t.el.innerHTML = '<span> </span>One Two';
+        t.assertEquals(rangy.innerText(t.el), "One Two");
+    });
+
+    s.test("innerText on simple text with trailing space in span", function(t) {
+        t.el.innerHTML = 'One Two<span> </span>';
+        t.assertEquals(rangy.innerText(t.el), "One Two");
+    });
+
+    s.test("innerText on simple text with non-breaking space in span", function(t) {
+        t.el.innerHTML = '1 <span>&nbsp; </span>2';
+        t.assertEquals(rangy.innerText(t.el), "1 \u00a0 2");
+    });
+
+    s.test("innerText on simple text with non-breaking space in span 2", function(t) {
+        t.el.innerHTML = '1<span> &nbsp; </span>2';
+        t.assertEquals(rangy.innerText(t.el), "1 \u00a0 2");
+    });
+
+    s.test("innerText on simple text with non-breaking space in span 3", function(t) {
+        t.el.innerHTML = '1<span> &nbsp;</span> 2';
+        t.assertEquals(rangy.innerText(t.el), "1 \u00a0 2");
+    });
+
+    s.test("innerText on two paragraphs", function(t) {
+        t.el.innerHTML = '<p>1</p><p>2</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText on two paragraphs separated by spaces", function(t) {
+        t.el.innerHTML = '<p>1</p>\n<p>2</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText on two paragraphs with container", function(t) {
+        t.el.innerHTML = '<div><p>1</p><p>2</p></div>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText on table", function(t) {
+        t.el.innerHTML = '<table><tr><td>1</td><td>2</td></tr><tr><td>3</td><td>4</td></tr></table>';
+        t.assertEquals(rangy.innerText(t.el), "1\t2\n3\t4");
+    });
+
+    s.test("innerText with hidden p element", function(t) {
+        t.el.innerHTML = '<p>1</p><p style="display: none">2</p><p>3</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n3");
+    });
+
+    s.test("innerText with invisible p", function(t) {
+        t.el.innerHTML = '<p>1</p><p style="visibility: hidden">2</p><p>3</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n3");
+    });
+
+    s.test("innerText on paragraph with uncollapsed br", function(t) {
+        t.el.innerHTML = '<p>1<br>2</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText on paragraph with two uncollapsed brs", function(t) {
+        t.el.innerHTML = '<p>1<br><br>2</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n\n2");
+    });
+
+    s.test("innerText on paragraph with uncollapsed br preceded by space", function(t) {
+        t.el.innerHTML = '<p>1 <br>2</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+    s.test("innerText on two paragraphs with collapsed br", function(t) {
+        t.el.innerHTML = '<p>1<br></p><p>2</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+    });
+
+
 /*
     s.test("isCollapsedBr", function(t) {
         t.el.innerHTML = "<div><br><i><br><br></i></div><br><div><i><br></i></div><div><i><br></i>x</div>";
