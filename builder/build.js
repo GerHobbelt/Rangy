@@ -14,7 +14,7 @@ var buildSpec = {
 
 var buildDir = "build/";
 
-var svnDir = buildDir + "repository/", srcDir = svnDir + "js/";
+var svnDir = buildDir + "checkout/", srcDir = svnDir + "js/";
 var zipDir;
 var uncompressedBuildDir;
 var coreFilename = "rangy-core.js";
@@ -22,7 +22,8 @@ var modules = [
     "rangy-cssclassapplier.js",
     "rangy-serializer.js",
     "rangy-selectionsaverestore.js",
-    "rangy-textrange.js"
+    "rangy-textrange.js",
+    "rangy-util.js"
 ];
 
 var allScripts = [coreFilename].concat(modules);
@@ -83,7 +84,7 @@ function checkoutSvnRepository() {
 
 function getVersion() {
     exec("svnversion", function(error, stdout, stderr) {
-        buildVersion = buildSpec.baseVersion + "." + stdout.trim();
+        buildVersion = buildSpec.baseVersion + "." + stdout.trim().replace(/:/g, "_");
         zipDir = buildDir + "rangy-" + buildVersion + "/";
         fs.mkdirSync(zipDir);
         uncompressedBuildDir = zipDir + "uncompressed/";
@@ -184,7 +185,6 @@ function substituteBuildVars() {
     callback();
 }
 
-
 function lint() {
     // Run JSHint only on non-library code
     var jshint = require("jshint");
@@ -220,6 +220,8 @@ function lint() {
 }
 
 function minify() {
+    var error = false;
+
     function getLicence(srcFile) {
         var contents = fs.readFileSync(srcFile, FILE_ENCODING);
         var result = /^\s*\/\*\*[\s\S]*?\*\//.exec(contents);
@@ -233,22 +235,31 @@ function minify() {
         var jsp = uglify.parser;
         var pro = uglify.uglify;
 
-        var ast = jsp.parse(fs.readFileSync(src, FILE_ENCODING)); // parse code and get the initial AST
-        ast = pro.ast_mangle(ast); // get a new AST with mangled names
-        ast = pro.ast_squeeze(ast); // get an AST with compression optimizations
-        var final_code = pro.gen_code(ast, {
-            ascii_only: true
-        }); // compressed code here
+        try {
+            var ast = jsp.parse(fs.readFileSync(src, FILE_ENCODING)); // parse code and get the initial AST
+            ast = pro.ast_mangle(ast); // get a new AST with mangled names
+            ast = pro.ast_squeeze(ast); // get an AST with compression optimizations
+            var final_code = pro.gen_code(ast, {
+                ascii_only: true
+            });
 
-        fs.writeFileSync(dest, licence + "\n" + final_code, FILE_ENCODING);
+            fs.writeFileSync(dest, licence + "\r\n" + final_code, FILE_ENCODING);
+        } catch (ex) {
+            console.log(ex, ex.stack);
+            error = true;
+        }
     }
 
     allScripts.forEach(function(fileName) {
         uglify(uncompressedBuildDir + fileName, zipDir + fileName);
     });
 
-    console.log("Minified scripts");
-    callback();
+    if (error) {
+        console.log("Uglify failed");
+    } else {
+        console.log("Minified scripts");
+        callback();
+    }
 }
 
 function zip() {
