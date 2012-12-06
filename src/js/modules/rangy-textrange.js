@@ -1,5 +1,5 @@
 /**
- * @license Text range module for Rangy.
+ * Text range module for Rangy.
  * A generic framework for creating text mutation commands for Ranges and Selections
  *
  * Part of Rangy, a cross-browser JavaScript range and selection library
@@ -27,19 +27,11 @@
  * - Add window.find() equivalent
  * - Add innerText equivalent
  *
- * Potential API
- *
- * Range additions
- *
- * -
- *
- *
  * References
  *
  * https://www.w3.org/Bugs/Public/show_bug.cgi?id=13145
  * http://aryeh.name/spec/innertext/innertext.html
  * http://dvcs.w3.org/hg/editing/raw-file/tip/editing.html
- *
  */
 
 rangy.createModule("TextRange", function(api, module) {
@@ -52,6 +44,16 @@ rangy.createModule("TextRange", function(api, module) {
     var log = log4javascript.getLogger("rangy.textrange");
 
     var elementsHaveUniqueId = util.isHostProperty(document.documentElement, "uniqueID");
+
+    var defaultWordOptions = {
+        "en": {
+            punctuationRegex: /[.,\-/#!$%^&*;:{}=_`~()'"]/,
+            midWordPunctuationRegex: /'/,
+            includeTrailingSpace: false,
+            includeTrailingPunctuation: false
+        }
+    };
+    var defaultLanguage = "en";
 
     var getComputedStyleProperty;
     if (typeof window.getComputedStyle != UNDEF) {
@@ -89,12 +91,12 @@ rangy.createModule("TextRange", function(api, module) {
     var spacesMinusLineBreaksRegex = /^[ \t\f\r]+$/;
 
     function getAncestors(node) {
-    	var ancestors = [];
-    	while (node.parentNode) {
-    		ancestors.unshift(node.parentNode);
-    		node = node.parentNode;
-    	}
-    	return ancestors;
+        var ancestors = [];
+        while (node.parentNode) {
+            ancestors.unshift(node.parentNode);
+            node = node.parentNode;
+        }
+        return ancestors;
     }
 
     function getAncestorsAndSelf(node) {
@@ -200,79 +202,79 @@ rangy.createModule("TextRange", function(api, module) {
     // "node is a collapsed whitespace node if the following algorithm returns
     // true:"
     function isCollapsedWhitespaceNode(node) {
-    	// "If node's data is the empty string, return true."
-    	if (node.data == "") {
-    		return true;
-    	}
+        // "If node's data is the empty string, return true."
+        if (node.data == "") {
+            return true;
+        }
 
-    	// "If node is not a whitespace node, return false."
-    	if (!isWhitespaceNode(node)) {
-    		return false;
-    	}
+        // "If node is not a whitespace node, return false."
+        if (!isWhitespaceNode(node)) {
+            return false;
+        }
 
-    	// "Let ancestor be node's parent."
-    	var ancestor = node.parentNode;
+        // "Let ancestor be node's parent."
+        var ancestor = node.parentNode;
 
-    	// "If ancestor is null, return true."
-    	if (!ancestor) {
-    		return true;
-    	}
+        // "If ancestor is null, return true."
+        if (!ancestor) {
+            return true;
+        }
 
-    	// "If the "display" property of some ancestor of node has resolved value "none", return true."
+        // "If the "display" property of some ancestor of node has resolved value "none", return true."
         if (isHidden(node)) {
             return true;
         }
 
-    	// "While ancestor is not a block node and its parent is not null, set
-    	// ancestor to its parent."
-    	while (!isBlockNode(ancestor) && ancestor.parentNode) {
-    		ancestor = ancestor.parentNode;
-    	}
+        // "While ancestor is not a block node and its parent is not null, set
+        // ancestor to its parent."
+        while (!isBlockNode(ancestor) && ancestor.parentNode) {
+            ancestor = ancestor.parentNode;
+        }
 
-    	// "Let reference be node."
-    	var reference = node;
+        // "Let reference be node."
+        var reference = node;
 
-    	// "While reference is a descendant of ancestor:"
-    	while (reference != ancestor) {
-    		// "Let reference be the node before it in tree order."
-    		reference = previousNode(reference);
+        // "While reference is a descendant of ancestor:"
+        while (reference != ancestor) {
+            // "Let reference be the node before it in tree order."
+            reference = previousNode(reference);
 
-    		// "If reference is a block node or a br, return true."
-    		if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
-    			return true;
-    		}
+            // "If reference is a block node or a br, return true."
+            if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
+                return true;
+            }
 
-    		// "If reference is a Text node that is not a whitespace node, or is an
-    		// img, break from this loop."
-    		if ((reference.nodeType == 3 && !isWhitespaceNode(reference)) || isHtmlElement(reference, "img")) {
-    			break;
-    		}
-    	}
+            // "If reference is a Text node that is not a whitespace node, or is an
+            // img, break from this loop."
+            if ((reference.nodeType == 3 && !isWhitespaceNode(reference)) || isHtmlElement(reference, "img")) {
+                break;
+            }
+        }
 
-    	// "Let reference be node."
-    	reference = node;
+        // "Let reference be node."
+        reference = node;
 
-    	// "While reference is a descendant of ancestor:"
-    	var stop = nextNodeDescendants(ancestor);
-    	while (reference != stop) {
-    		// "Let reference be the node after it in tree order, or null if there
-    		// is no such node."
-    		reference = nextNode(reference);
+        // "While reference is a descendant of ancestor:"
+        var stop = nextNodeDescendants(ancestor);
+        while (reference != stop) {
+            // "Let reference be the node after it in tree order, or null if there
+            // is no such node."
+            reference = nextNode(reference);
 
-    		// "If reference is a block node or a br, return true."
-    		if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
-    			return true;
-    		}
+            // "If reference is a block node or a br, return true."
+            if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
+                return true;
+            }
 
-    		// "If reference is a Text node that is not a whitespace node, or is an
-    		// img, break from this loop."
-    		if ((reference && reference.nodeType == 3 && !isWhitespaceNode(reference)) || isHtmlElement(reference, "img")) {
-    			break;
-    		}
-    	}
+            // "If reference is a Text node that is not a whitespace node, or is an
+            // img, break from this loop."
+            if ((reference && reference.nodeType == 3 && !isWhitespaceNode(reference)) || isHtmlElement(reference, "img")) {
+                break;
+            }
+        }
 
-    	// "Return false."
-    	return false;
+        // "Return false."
+        return false;
     }
 
     // Test for old IE's incorrect display properties
@@ -417,10 +419,10 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     function previousPosition(pos) {
-        var node = pos.node, offset = pos.offset;
-        if (!node) {
+        if (!pos) {
             return null;
         }
+        var node = pos.node, offset = pos.offset;
         var previousNode, previousOffset, child;
         if (offset == 0) {
             previousNode = node.parentNode;
@@ -694,135 +696,203 @@ rangy.createModule("TextRange", function(api, module) {
     }
 */
 
-    function createRangeCharacterIterator(range) {
-        log.info("createRangeCharacterIterator called on range " + range.inspect());
-        var startPos = new DomPosition(range.startContainer, range.startOffset);
-        var transaction = createTransaction(dom.getWindow(range.startContainer));
+    function createCharacterIterator(startPos, backwards, endPos) {
+        log.info("createCharacterIterator called backwards " + backwards + " and with endPos " + (endPos ? endPos.inspect() : ""));
+        var transaction = createTransaction(dom.getWindow(startPos.node));
 
         // Adjust the end position to ensure that it is actually reached
-        var endPos = getPreviousPossibleCharacter(new DomPosition(range.endContainer, range.endOffset), transaction).position;
-        endPos = nextVisiblePosition(endPos);
-
-        var pos = startPos, finished = false;
-
-        function next() {
-            var textPos = null;
-            if (!finished) {
-                pos = nextVisiblePosition(pos);
-                if (pos) {
-                    textPos = getCharacterAt(pos, transaction);
-                    if (pos.equals(endPos)) {
-                        finished = true;
-                    }
-                } else {
-                    finished = true;
-                }
-            }
-            return textPos;
-        }
-
-        return function() {
-            var textPos;
-            while ( (textPos = next()) ) {
-                if (textPos.character) {
-                    return textPos;
-                }
-            }
-        };
-    }
-
-    function createRangeBackwardsCharacterIterator(range) {
-        log.info("createRangeBackwardsCharacterIterator called on range " + range.inspect());
-        var startPos = new DomPosition(range.endContainer, range.endOffset);
-        var transaction = createTransaction(dom.getWindow(range.startContainer));
-
-        // Adjust the end position to ensure that it is actually reached
-        var endPos = getNextPossibleCharacter(new DomPosition(range.startContainer, range.startOffset), transaction).position;
-        endPos = previousVisiblePosition(endPos);
-
-        var pos = startPos, finished = false;
-
-        function next() {
-            var textPos = null;
-            if (!finished) {
-                if (pos) {
-                    textPos = getCharacterAt(pos, transaction);
-                    if (pos.equals(endPos)) {
-                        finished = true;
-                    }
-                } else {
-                    finished = true;
-                }
-                pos = previousVisiblePosition(pos);
-            }
-            return textPos;
-        }
-
-        return function() {
-            var textPos;
-            while ( (textPos = next()) ) {
-                log.info("textPos " + textPos.position.inspect(), textPos.character);
-
-                if (textPos.character) {
-                    return textPos;
-                }
-            }
-        };
-    }
-
-    function movePositionBy(pos, unit, count) {
-        log.info("movePositionBy called " + count);
-        var charsMoved = 0, newPos = pos, textPos, absCount = Math.abs(count);
-        if (count !== 0) {
-            var win = dom.getWindow(pos.node);
-            var range = api.createRange(win.document);
-            range.selectNodeContents(win.document.body);
-            var backwards = (count < 0);
+        if (endPos) {
             if (backwards) {
-                range.setEnd(pos.node, pos.offset);
+                if (isCollapsedNode(endPos.node)) {
+                    endPos = previousVisiblePosition(endPos);
+                }
             } else {
-                range.setStart(pos.node, pos.offset);
+                if (isCollapsedNode(endPos.node)) {
+                    endPos = nextVisiblePosition(endPos);
+                }
             }
-            log.info("Range: " + range);
-            var it = backwards ? createRangeBackwardsCharacterIterator(range) : createRangeCharacterIterator(range);
+        }
+        log.info("endPos now " + (endPos ? endPos.inspect() : ""));
+
+        var pos = startPos, finished = false;
+
+        function next() {
+            var textPos = null;
+            if (!finished) {
+                if (!backwards) {
+                    pos = nextVisiblePosition(pos);
+                }
+                if (pos) {
+                    textPos = getCharacterAt(pos, transaction);
+                    if (endPos && pos.equals(endPos)) {
+                        finished = true;
+                    }
+                } else {
+                    finished = true;
+                }
+                if (backwards) {
+                    pos = previousVisiblePosition(pos);
+                }
+            }
+            return textPos;
+        }
+
+        return {
+            next: function() {
+                var textPos;
+                while ( (textPos = next()) ) {
+                    if (textPos.character) {
+                        return textPos;
+                    }
+                }
+            },
+
+            dispose: function() {
+                startPos = endPos = transaction = null;
+            }
+        };
+    }
+
+    function createWordOptions(options) {
+        var lang, defaults;
+        if (!options) {
+            return defaultWordOptions[defaultLanguage];
+        } else {
+            lang = options.language || defaultLanguage;
+            defaults = {};
+            util.extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
+            util.extend(defaults, options);
+            return defaults;
+        }
+    }
+
+    function movePositionBy(pos, unit, count, options) {
+        log.info("movePositionBy called " + count);
+        var unitsMoved = 0, chars, newPos = pos, textPos, absCount = Math.abs(count);
+        if (count !== 0) {
+            var backwards = (count < 0);
+            var it = createCharacterIterator(pos, backwards);
 
             switch (unit) {
                 case CHARACTER:
-                    while ( (textPos = it()) && charsMoved < absCount ) {
+                    while ( (textPos = it.next()) && unitsMoved < absCount ) {
                         log.info("*** movePositionBy GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
-                        ++charsMoved;
+                        ++unitsMoved;
                         newPos = textPos.position;
-                        if (backwards) {
-                            newPos = previousVisiblePosition(newPos);
-                        }
-                    }
-                    if (backwards) {
-                        charsMoved = -charsMoved;
                     }
                     break;
                 case WORD:
+                    /*
+                     - If first char is space, move on until non-space/punct encountered, then on until word end
+                     - If first char is mid-word punct, check next and preceding chars. If both non-punct and non-space,
+                       treat as word char, otherwise as punct
+                     - If first char is other punct, move on until non-space/punct encountered, then on until word end
+                     - Otherwise, move on until word end.
+                     - Moving to word end: if char is space/non-mid-word-punct/end, word ends. If mid-word punct, check
+                       preceding char and next char
+                     */
+                    var precedingChar = null, isWordChar, isTerminatorChar, isSpaceChar, isPunctuationChar;
+                    var previousCharIsMidWordPunctuation = false;
+                    var precedingIterator, precedingTextPos, ch, lastTextPosInWord;
+
+                    while ( (textPos = it.next()) && unitsMoved < absCount ) {
+                        ch = textPos.character;
+                        isWordChar = isTerminatorChar = false;
+                        isSpaceChar = spacesRegex.test(ch);
+                        isPunctuationChar = options.punctuationRegex.test(ch);
+
+                        if (isSpaceChar || isPunctuationChar) {
+                            // If no word characters yet encountered, we just skip forward until we meet some.
+                            // Otherwise, we're done, unless this was a mid-word punctuation character
+
+                            if (!previousCharIsMidWordPunctuation && options.midWordPunctuationRegex.test(ch)) {
+                                if (precedingChar === null) {
+                                    // Check preceding character
+                                    precedingIterator = createCharacterIterator(pos, !backwards);
+                                    precedingTextPos = precedingIterator.next();
+                                    precedingChar = precedingTextPos ? precedingTextPos.character : "";
+                                    precedingIterator.dispose();
+                                    if (precedingChar && !options.punctuationRegex.test(precedingChar) && !spacesRegex.test(precedingChar)) {
+                                        previousCharIsMidWordPunctuation = true;
+                                    } else {
+                                        previousCharIsMidWordPunctuation = false;
+                                        isTerminatorChar = true;
+                                    }
+                                }
+                            } else if (!backwards && isPunctuationChar && lastTextPosInWord && options.includeTrailingPunctuation) {
+                                isWordChar = true;
+                            } else {
+                                isTerminatorChar = true;
+                                previousCharIsMidWordPunctuation = false;
+                            }
+                        } else {
+                            previousCharIsMidWordPunctuation = false;
+                            isWordChar = true;
+                        }
+
+                        log.info("**** TESTING CHAR " + ch + ". is word char: " + isWordChar + ", is terminator: " + isTerminatorChar);
+
+                        if (isWordChar) {
+                            lastTextPosInWord = textPos;
+                        }
+
+                        if (isTerminatorChar) {
+                            if (lastTextPosInWord) {
+                                newPos = (!backwards && options.includeTrailingSpace && ch == " ")
+                                    ? textPos.position : lastTextPosInWord.position;
+
+                                lastTextPosInWord = null;
+                                ++unitsMoved;
+                                log.info("**** FOUND TERMINATOR AFTER WORD. unitsMoved NOW " + unitsMoved);
+                            }
+                        }
+
+                        precedingChar = ch;
+                    }
+
+                    // If we've run out of positions before the required number of words were navigated, check whether
+                    // there was a last word and include it if so
+                    if (lastTextPosInWord && unitsMoved < absCount) {
+                        newPos = lastTextPosInWord.position;
+                        ++unitsMoved;
+                        log.info("**** FOUND EOF AFTER WORD. unitsMoved NOW " + unitsMoved);
+                    }
+
                     break;
                 default:
                     throw new Error("movePositionBy: unit '" + unit + "' not implemented");
             }
+            if (backwards) {
+                newPos = previousVisiblePosition(newPos);
+                unitsMoved = -unitsMoved;
+            }
+            it.dispose();
         }
+
         return {
             position: newPos,
-            charsMoved: charsMoved
+            unitsMoved: unitsMoved
         };
     }
 
-
+    function createRangeCharacterIterator(range) {
+        return createCharacterIterator(
+            new DomPosition(range.startContainer, range.startOffset),
+            false,
+            new DomPosition(range.endContainer, range.endOffset)
+        );
+    }
 
     function getRangeCharacters(range) {
         log.info("getRangeCharacters called on range " + range.inspect());
 
         var chars = [], it = createRangeCharacterIterator(range), textPos;
-        while ( (textPos = it()) ) {
+        while ( (textPos = it.next()) ) {
             log.info("*** GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
             chars.push(textPos);
         }
 
+        it.dispose();
         return chars;
     }
 
@@ -837,57 +907,110 @@ rangy.createModule("TextRange", function(api, module) {
     /*----------------------------------------------------------------------------------------------------------------*/
 
     util.extend(api.rangePrototype, {
-        text: function() {
-            return getRangeCharacters(this).join("");
+        // Unit can be "character" or "word"
+        moveStart: function(unit, count, options) {
+            if (arguments.length == 1) {
+                count = unit;
+                unit = CHARACTER;
+            }
+            if (unit == WORD) {
+                options = createWordOptions(options);
+            }
+            var moveResult = movePositionBy(new DomPosition(this.startContainer, this.startOffset), unit, count, options);
+            var newPos = moveResult.position;
+            this.setStart(newPos.node, newPos.offset);
+            return moveResult.unitsMoved;
         },
 
         // Unit can be "character" or "word"
-        moveStart: function(unit, count) {
+        moveEnd: function(unit, count, options) {
             if (arguments.length == 1) {
+                count = unit;
                 unit = CHARACTER;
             }
-            var moveResult = movePositionBy(new DomPosition(this.startContainer, this.startOffset), unit, count);
-            var newPos = moveResult.position;
-            this.setStart(newPos.node, newPos.offset);
-            return moveResult.charsMoved;
-        },
-
-        moveEnd: function(unit, count) {
-            if (arguments.length == 1) {
-                unit = CHARACTER;
+            if (unit == WORD) {
+                options = createWordOptions(options);
             }
-            var moveResult = movePositionBy(new DomPosition(this.startContainer, this.startOffset), unit, count);
+            var moveResult = movePositionBy(new DomPosition(this.endContainer, this.endOffset), unit, count, options);
             var newPos = moveResult.position;
             this.setEnd(newPos.node, newPos.offset);
-            return moveResult.charsMoved;
+            return moveResult.unitsMoved;
         },
 
-        moveToNodePosition: function(node, unit, startCount, endCount) {
-            this.selectNodeContents();
-            this.moveEnd(unit, endCount);
-            this.moveStart(unit, startCount);
+        expand: function(unit, options) {
+            var moved = false;
+            if (!unit) {
+                unit = CHARACTER;
+            }
+            if (unit == WORD) {
+                options = createWordOptions(options);
+                var startPos = new DomPosition(this.startContainer, this.startOffset);
+                var endPos = new DomPosition(this.endContainer, this.endOffset);
+
+                var moveStartResult = movePositionBy(startPos, WORD, 1, options);
+                if (!moveStartResult.position.equals(startPos)) {
+                    var newStartPos = movePositionBy(moveStartResult.position, WORD, -1, options).position;
+                    this.setStart(newStartPos.node, newStartPos.offset);
+                    log.info("**** MOVED START. Range now " + this.inspect(), startPos.inspect(), newStartPos.inspect());
+                    moved = true;
+                }
+                if (this.collapsed) {
+                    this.moveEnd(WORD, 1);
+                    if (!this.collapsed) {
+                        moved = true;
+                    }
+                } else {
+                    var moveEndResult = movePositionBy(endPos, WORD, -1, options);
+                    if (!moveEndResult.position.equals(endPos)) {
+                        var newEndPos = movePositionBy(moveEndResult.position, WORD, 1, options).position;
+                        this.setEnd(newEndPos.node, newEndPos.offset);
+                        log.info("**** MOVED END. Range now " + this.inspect());
+                        moved = true;
+                    }
+                }
+
+                return moved;
+            } else {
+                return this.moveEnd(CHARACTER, 1);
+            }
         },
 
-        toNodePosition: function(node) {
-/*
-            var range = this.cloneRange();
-            range.setStart(node, 0);
-            range.setEnd();
-*/
-
-
+        text: function() {
+            return this.collapsed ? "" : getRangeCharacters(this).join("");
         },
 
-        htmlText: function() {
-
+        selectCharacters: function(containerNode, startIndex, endIndex) {
+            this.selectNodeContents(containerNode);
+            this.collapse(true);
+            this.moveStart(startIndex);
+            this.collapse(true);
+            this.moveEnd(endIndex - startIndex);
         },
 
-        expand: function(unit) {
+        // Character indexes are relative to the start of node
+        toCharacterRange: function(containerNode) {
+            if (!containerNode) {
+                containerNode = document.body;
+            }
+            var parent = containerNode.parentNode, nodeIndex = dom.getNodeIndex(containerNode);
+            var rangeStartsBeforeNode = (dom.comparePoints(this.startContainer, this.endContainer, parent, nodeIndex) == -1);
+            var rangeBetween = this.cloneRange();
+            var startIndex, endIndex;
+            if (rangeStartsBeforeNode) {
+                rangeBetween.setStart(this.startContainer, this.startOffset);
+                rangeBetween.setEnd(parent, nodeIndex);
+                startIndex = -rangeBetween.text().length;
+            } else {
+                rangeBetween.setStart(parent, nodeIndex);
+                rangeBetween.setEnd(this.startContainer, this.startOffset);
+                startIndex = rangeBetween.text().length;
+            }
+            endIndex = startIndex + this.text().length;
 
-        },
-
-        move: function() {
-
+            return {
+                start: startIndex,
+                end: endIndex
+            };
         },
 
         findText: function(searchTerm, caseSensitive) {
@@ -895,6 +1018,7 @@ rangy.createModule("TextRange", function(api, module) {
             var it = createRangeCharacterIterator(this);
             var text = "", chars = [], textPos, currentChar, matchStartIndex, matchEndIndex;
             var isRegex = false, result, insideRegexMatch;
+            var found = false;
 
             function moveToMatch(startIndex, endIndex) {
                 var startPos = previousVisiblePosition(chars[startIndex].position);
@@ -911,7 +1035,7 @@ rangy.createModule("TextRange", function(api, module) {
                 isRegex = true;
             }
 
-            while ( (textPos = it()) ) {
+            while ( (textPos = it.next()) ) {
                 chars.push(textPos);
                 currentChar = textPos.character;
                 if (!isRegex && !caseSensitive) {
@@ -928,7 +1052,8 @@ rangy.createModule("TextRange", function(api, module) {
                             matchEndIndex = matchStartIndex + result[0].length;
                             if (matchEndIndex < text.length) {
                                 moveToMatch(matchStartIndex, matchEndIndex);
-                                return true;
+                                found = true;
+                                break;
                             }
                         } else {
                             insideRegexMatch = true;
@@ -937,66 +1062,77 @@ rangy.createModule("TextRange", function(api, module) {
                 } else if ( (matchStartIndex = text.indexOf(searchTerm)) != -1) {
                     // A text match has been found, so adjust the range
                     moveToMatch(matchStartIndex, matchStartIndex + searchTerm.length);
-                    return true;
+                    found = true;
+                    break;
                 }
             }
 
             // Check whether regex match extends to the end of the range
             if (insideRegexMatch) {
                 moveToMatch(matchStartIndex, matchEndIndex);
-                return true;
+                found = true;
             }
+            it.dispose();
 
-            return false;
+            return found;
         },
 
-        pasteHTML: function() {
-
-        },
-
-        select: function() {
-
+        pasteHtml: function(html) {
+            this.deleteContents();
+            var frag = this.createContextualFragment(html);
+            this.insertNode(frag);
         }
     });
 
     util.extend(api.selectionPrototype, {
-        toNodePosition: function(node) {
+        expand: function(unit, options) {
+            var ranges = this.getAllRanges(), rangeCount = ranges.length;
+            var backwards = this.isBackwards();
 
+            for (var i = 0, len = ranges.length; i < len; ++i) {
+                ranges[i].expand(unit, options);
+            }
+
+            this.removeAllRanges();
+            if (backwards && rangeCount == 1) {
+                this.addRange(ranges[0], true);
+            } else {
+                this.setRanges(ranges);
+            }
         },
 
-        modify: function() {
-
+        selectCharacters: function(containerNode, startIndex, endIndex, backwards) {
+            var range = api.createRange(containerNode);
+            range.selectCharacters(containerNode, startIndex, endIndex);
+            this.setSingleRange(range, backwards);
         },
 
-        expand: function() {
+        saveCharacterRanges: function(containerNode) {
+            var ranges = this.getAllRanges(), rangeCount = ranges.length;
+            var characterRanges = [];
 
+            var backwards = rangeCount == 1 && this.isBackwards();
+
+            for (var i = 0, len = ranges.length; i < len; ++i) {
+                characterRanges[i] = {
+                    range: ranges[i].toCharacterRange(containerNode),
+                    backwards: backwards
+                }
+            }
+
+            return characterRanges;
         },
 
-        moveAnchor: function() {
-
-        },
-
-        moveFocus: function() {
-
-        },
-
-        moveStart: function() {
-
-        },
-
-        moveEnd: function() {
-
-        },
-
-        find: function() {
-
+        restoreCharacterRanges: function(containerNode, characterRanges) {
+            this.removeAllRanges();
+            for (var i = 0, len = characterRanges.length, range, characterRange; i < len; ++i) {
+                characterRange = characterRanges[i];
+                range = api.createRange(containerNode);
+                range.selectCharacters(containerNode, characterRange.range.start, characterRange.range.end);
+                this.addRange(range, characterRange.backwards);
+            }
         }
     });
-
-    // Returns array of Ranges
-    api.findAll = function(text, options) {
-
-    };
 
     api.innerText = function(el) {
         var range = api.createRange(el);
@@ -1008,9 +1144,6 @@ rangy.createModule("TextRange", function(api, module) {
 
     api.textRange = {
         isBlockNode: isBlockNode,
-/*
-        isCollapsedBr: isCollapsedBr,
-*/
         isCollapsedWhitespaceNode: isCollapsedWhitespaceNode,
         nextPosition: nextPosition,
         previousPosition: previousPosition,
