@@ -114,13 +114,20 @@ window.rangy = (function() {
 
     // Add utility extend() method
     if ({}.hasOwnProperty) {
-        api.util.extend = function(o, props) {
+        api.util.extend = function(obj, props, deep) {
+            var o, p;
             for (var i in props) {
                 if (props.hasOwnProperty(i)) {
-                    o[i] = props[i];
+                    o = obj[i];
+                    p = props[i];
+                    //if (deep) alert([o !== null, typeof o == "object", p !== null, typeof p == "object"])
+                    if (deep && o !== null && typeof o == "object" && p !== null && typeof p == "object") {
+                        api.util.extend(o, p, true);
+                    }
+                    obj[i] = p;
                 }
             }
-            return o;
+            return obj;
         };
     } else {
         fail("hasOwnProperty not supported");
@@ -148,6 +155,10 @@ window.rangy = (function() {
         }
 
         var body = isHostObject(document, "body") ? document.body : document.getElementsByTagName("body")[0];
+        if (!body || body.nodeName.toLowerCase() != "body") {
+            fail("No body element found");
+            return;
+        }
 
         if (body && isHostMethod(body, "createTextRange")) {
             testRange = body.createTextRange();
@@ -158,6 +169,7 @@ window.rangy = (function() {
 
         if (!implementsDomRange && !implementsTextRange) {
             fail("Neither Range nor TextRange are available");
+            return;
         }
 
         api.initialized = true;

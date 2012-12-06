@@ -8,10 +8,10 @@
  *
  * Depends on Rangy core.
  *
- * Copyright %%build:year%%, Tim Down
+ * Copyright 2012, Tim Down
  * Licensed under the MIT license.
- * Version: %%build:version%%
- * Build date: %%build:date%%
+ * Version: 1.3alpha.639
+ * Build date: 3 June 2012
  */
 rangy.createModule("Serializer", function(api, module) {
     api.requireModules( ["WrappedSelection", "WrappedRange"] );

@@ -1,7 +1,6 @@
+// This module creates a selection object wrapper that conforms as closely as possible to the Selection specification
+// in the HTML Editing spec (http://dvcs.w3.org/hg/editing/raw-file/tip/editing.html#selections)
 rangy.createModule("WrappedSelection", function(api, module) {
-    // This will create a selection object wrapper that follows the Selection object found in the WHATWG draft DOM Range
-    // spec (http://html5.org/specs/dom-range.html)
-
     api.requireModules( ["DomUtil", "DomRange", "WrappedRange"] );
 
     api.config.checkSelectionRanges = true;
@@ -294,8 +293,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     var getSelectionRangeAt;
 
-    if (util.isHostMethod(testSelection,  "getRangeAt")) {
-        // TODO: Why the try/catch? Find out.
+    if (util.isHostMethod(testSelection, "getRangeAt")) {
+        // try/catch is present because getRangeAt() threw and error in some browser and some situation. Unfortunately,
+        // I didn't write a comment about the specifics and am now scared to take it out.
         getSelectionRangeAt = function(sel, index) {
             try {
                 return sel.getRangeAt(index);
@@ -359,10 +359,6 @@ rangy.createModule("WrappedSelection", function(api, module) {
             cachedRangySelections.length = 0;
         }
         return null;
-    }
-
-    function emptySelectionCache() {
-        cachedRangySelections.length = 0;
     }
 
     api.getSelection = function(win) {
@@ -443,7 +439,10 @@ rangy.createModule("WrappedSelection", function(api, module) {
                             this.removeAllRanges();
                             previousRangeCount = 0;
                         }
-                        this.nativeSelection.addRange(getNativeRange(range));
+                        // Clone the native range so that changing the selected range does not affect the selection.
+                        // This is contrary to the spec but is the only way to achieve consistency between browsers. See
+                        // issue 80.
+                        this.nativeSelection.addRange(getNativeRange(range).cloneRange());
 
                         // Check whether adding the range was successful
                         this.rangeCount = this.nativeSelection.rangeCount;
@@ -552,7 +551,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
         if (index < 0 || index >= this.rangeCount) {
             throw new DOMException("INDEX_SIZE_ERR");
         } else {
-            return this._ranges[index];
+            // Clone the range to preserve selection-range independence. See issue 80.
+            return this._ranges[index].cloneRange();
         }
     };
 
@@ -649,7 +649,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
             if (removed || range !== ranges[i]) {
                 sel.addRange(ranges[i]);
             } else {
-                // According to the draft WHATWG Range spec, the same range may be added to the selection multiple
+                // According to the draft HTML Editing spec, the same range may be added to the selection multiple
                 // times. removeRange should only remove the first instance, so the following ensures only the first
                 // instance is removed
                 removed = true;
@@ -713,8 +713,9 @@ rangy.createModule("WrappedSelection", function(api, module) {
         };
     }
 
-    // Selection text
-    // This is conformant to the new WHATWG DOM Range draft spec but differs from WebKit and Mozilla's implementation
+    // Selection stringifier
+    // This is conformant to the old HTML5 selections draft spec but differs from WebKit and Mozilla's implementation.
+    // The current spec does not yet define this method.
     selProto.toString = function() {
         log.debug("selection toString called");
         var rangeTexts = [];
@@ -730,13 +731,12 @@ rangy.createModule("WrappedSelection", function(api, module) {
         }
     }
 
-    // No current browsers conform fully to the HTML 5 draft spec for this method, so Rangy's own method is always used
+    // No current browser conforms fully to the spec for this method, so Rangy's own method is always used
     selProto.collapse = function(node, offset) {
         assertNodeInSameDocument(this, node);
-        var range = api.createRange(dom.getDocument(node));
+        var range = api.createRange(node);
         range.collapseToPoint(node, offset);
-        this.removeAllRanges();
-        this.addRange(range);
+        this.setSingleRange(range);
         this.isCollapsed = true;
     };
 
@@ -758,11 +758,11 @@ rangy.createModule("WrappedSelection", function(api, module) {
         }
     };
 
-    // The HTML 5 spec is very specific on how selectAllChildren should be implemented so the native implementation is
+    // The spec is very specific on how selectAllChildren should be implemented so the native implementation is
     // never used by Rangy.
     selProto.selectAllChildren = function(node) {
         assertNodeInSameDocument(this, node);
-        var range = api.createRange(dom.getDocument(node));
+        var range = api.createRange(node);
         range.selectNodeContents(node);
         this.removeAllRanges();
         this.addRange(range);
@@ -781,19 +781,25 @@ rangy.createModule("WrappedSelection", function(api, module) {
             this.refresh();
         } else if (this.rangeCount) {
             var ranges = this.getAllRanges();
-            this.removeAllRanges();
-            for (var i = 0, len = ranges.length; i < len; ++i) {
-                ranges[i].deleteContents();
+            if (ranges.length) {
+                this.removeAllRanges();
+                for (var i = 0, len = ranges.length; i < len; ++i) {
+                    ranges[i].deleteContents();
+                }
+                // The spec says nothing about what the selection should contain after calling deleteContents on each
+                // range. Firefox moves the selection to where the final selected range was, so we emulate that
+                this.addRange(ranges[len - 1]);
             }
-            // The HTML5 spec says nothing about what the selection should contain after calling deleteContents on each
-            // range. Firefox moves the selection to where the final selected range was, so we emulate that
-            this.addRange(ranges[len - 1]);
         }
     };
 
     // The following are non-standard extensions
     selProto.getAllRanges = function() {
-        return this._ranges.slice(0);
+        var ranges = [];
+        for (var i = 0, len = this._ranges.length; i < len; ++i) {
+            ranges[i] = this.getRangeAt(i);
+        }
+        return ranges;
     };
 
     selProto.setSingleRange = function(range, backwards) {

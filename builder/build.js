@@ -22,8 +22,8 @@ var modules = [
     "rangy-cssclassapplier.js",
     "rangy-serializer.js",
     "rangy-selectionsaverestore.js",
-    "rangy-textrange.js",
-    "rangy-util.js"
+    "rangy-textrange.js"/*,
+    "rangy-util.js"*/
 ];
 
 var allScripts = [coreFilename].concat(modules);
@@ -197,7 +197,10 @@ function lint() {
         jshint.JSHINT(buf, {
             boss: true,
             loopfunc: true,
-            scripturl: true
+            scripturl: true,
+            eqeqeq: false,
+            eqnull: false,
+            laxbreak: true
         });
 
         var errors = jshint.JSHINT.errors;

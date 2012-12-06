@@ -80,6 +80,12 @@ rangy.createModule("WrappedRange", function(api, module) {
         }
 
         var workingNode = dom.getDocument(containerElement).createElement("span");
+
+        // Workaround for HTML5 Shiv's insane violation of document.createElement(). See issue 104.
+        if (workingNode.parentNode) {
+            workingNode.parentNode.removeChild(workingNode);
+        }
+
         var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
         var previousNode, nextNode, boundaryPosition, boundaryNode;
 
@@ -559,19 +565,19 @@ rangy.createModule("WrappedRange", function(api, module) {
 
     api.createIframeRange = function(iframeEl) {
         module.deprecationNotice("createIframeRange()", "createRange(iframeEl)");
-        return api.createRange(dom.getIframeDocument(iframeEl));
+        return api.createRange(iframeEl);
     };
 
     api.createIframeRangyRange = function(iframeEl) {
         module.deprecationNotice("createIframeRangyRange()", "createRangyRange(iframeEl)");
-        return api.createRangyRange(dom.getIframeDocument(iframeEl));
+        return api.createRangyRange(iframeEl);
     };
 
     api.addCreateMissingNativeApiListener(function(win) {
         var doc = win.document;
         if (typeof doc.createRange == "undefined") {
             doc.createRange = function() {
-                return api.createRange(this);
+                return api.createRange(doc);
             };
         }
         doc = win = null;
