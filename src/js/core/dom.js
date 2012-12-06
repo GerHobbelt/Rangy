@@ -64,7 +64,7 @@ rangy.createModule("DomUtil", function(api, module) {
     function getNodeIndex(node) {
         var i = 0;
         while( (node = node.previousSibling) ) {
-            i++;
+            ++i;
         }
         return i;
     }
@@ -109,6 +109,10 @@ rangy.createModule("DomUtil", function(api, module) {
         return false;
     }
 
+    function isOrIsAncestorOf(ancestor, descendant) {
+        return isAncestorOf(ancestor, descendant, true);
+    }
+
     function getClosestAncestorIn(node, ancestor, selfIsAncestor) {
         var p, n = selfIsAncestor ? node : node.parentNode;
         while (n) {
@@ -145,11 +149,27 @@ rangy.createModule("DomUtil", function(api, module) {
     }
 
     // Note that we cannot use splitText() because it is bugridden in IE 9.
-    function splitDataNode(node, index) {
+    function splitDataNode(node, index, positionsToPreserve) {
+        log.debug("splitDataNode called at index " + index + " in node " + inspectNode(node));
         var newNode = node.cloneNode(false);
         newNode.deleteData(0, index);
         node.deleteData(index, node.length - index);
         insertAfter(newNode, node);
+
+        // Preserve positions
+        if (positionsToPreserve) {
+            for (var i = 0, position; position = positionsToPreserve[i++]; ) {
+                // Handle case where position was inside the portion of node after the split point
+                if (position.node == node && position.offset > index) {
+                    position.node = newNode;
+                    position.offset -= index;
+                }
+                // Handle the case where the position is a node offset within node's parent
+                else if (position.node == node.parentNode && position.offset > getNodeIndex(node)) {
+                    ++position.offset;
+                }
+            }
+        }
         return newNode;
     }
 
@@ -206,7 +226,7 @@ rangy.createModule("DomUtil", function(api, module) {
         return obj && util.isHostMethod(obj, "setTimeout") && util.isHostObject(obj, "document");
     }
 
-    function getContentDocument(obj) {
+    function getContentDocument(obj, module, methodName) {
         var doc;
 
         if (!obj) {
@@ -222,6 +242,10 @@ rangy.createModule("DomUtil", function(api, module) {
         // Test if the doc parameter appears to be a Window object
         else if (isWindow(obj)) {
             doc = obj.document;
+        }
+
+        if (!doc) {
+            throw module.createError(methodName + "(): Parameter must be a Window object or DOM node");
         }
 
         return doc;
@@ -297,9 +321,6 @@ rangy.createModule("DomUtil", function(api, module) {
         return fragment;
     }
 
-    /**
-     * @constructor
-     */
     function NodeIterator(root) {
         this.root = root;
         this._next = root;
@@ -339,9 +360,6 @@ rangy.createModule("DomUtil", function(api, module) {
         return new NodeIterator(root);
     }
 
-    /**
-     * @constructor
-     */
     function DomPosition(node, offset) {
         this.node = node;
         this.offset = offset;
@@ -349,17 +367,18 @@ rangy.createModule("DomUtil", function(api, module) {
 
     DomPosition.prototype = {
         equals: function(pos) {
-            return this.node === pos.node & this.offset == pos.offset;
+            return !!pos && this.node === pos.node && this.offset == pos.offset;
         },
 
         inspect: function() {
             return "[DomPosition(" + inspectNode(this.node) + ":" + this.offset + ")]";
+        },
+
+        toString: function() {
+            return this.inspect();
         }
     };
 
-    /**
-     * @constructor
-     */
     function DOMException(codeName) {
         this.code = this[codeName];
         this.codeName = codeName;
@@ -388,6 +407,7 @@ rangy.createModule("DomUtil", function(api, module) {
         getNodeLength: getNodeLength,
         getCommonAncestor: getCommonAncestor,
         isAncestorOf: isAncestorOf,
+        isOrIsAncestorOf: isOrIsAncestorOf,
         getClosestAncestorIn: getClosestAncestorIn,
         isCharacterDataNode: isCharacterDataNode,
         isTextOrCommentNode: isTextOrCommentNode,

@@ -1943,7 +1943,17 @@ rangy.createModule("DomUtil", function(api, module) {
         // Move the working range through the container's children, starting at the end and working backwards, until the
         // working range reaches or goes past the boundary we're interested in
         do {
-            containerElement.insertBefore(workingNode, workingNode.previousSibling);
+            try {
+              containerElement.insertBefore(workingNode, workingNode.previousSibling);
+            }
+            catch (err) {
+              // Catch an IE8 error that happens in some circumstances.
+              // Expecting to just eat IE8 error, but if different error, rethrow.
+              if (err.message !== "Invalid argument.") {
+                throw err;
+              }
+              containerElement.insertBefore(workingNode);
+            }
             workingRange.moveToElementText(workingNode);
         } while ( (comparison = workingRange.compareEndPoints(workingComparisonType, textRange)) > 0 &&
                 workingNode.previousSibling);
