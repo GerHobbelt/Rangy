@@ -6,8 +6,7 @@
  *
  * - Ability to move range boundaries by character or word offsets
  * - Customizable word tokenizer
- * - Ignore text nodes inside <script> or <style> elements or those hidden by CSS display and visibility properties
- * - Do not ignore text nodes that are outside normal document flow
+ * - Ignores text nodes inside <script> or <style> elements or those hidden by CSS display and visibility properties
  * - Range findText method to search for text or regex within the page or within a range. Flags for whole words and case
  *   sensitivity
  * - Selection and range save/restore as text offsets within a node
@@ -30,12 +29,47 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
+
+/**
+ * Problem: handling of trailing spaces before line breaks is handled inconsistently between browsers.
+ *
+ * First, a <br>: this is relatively simple. For the following HTML:
+ *
+ * 1 <br>2
+ *
+ * - IE and WebKit render the space, include it in the selection (i.e. when the content is selected and pasted into a
+ *   textarea, the space is present) and allow the caret to be placed after it.
+ * - Firefox does not acknowledge the space in the selection but it is possible to place the caret after it.
+ * - Opera does not render the space but has two separate caret positions on either side of the space (left and right
+ *   arrow keys show this) and includes the space in the selection.
+ *
+ * The other case is the line break or breaks implied by block elements. For the following HTML:
+ *
+ * <p>1 </p><p>2<p>
+ *
+ * - WebKit does not acknowledge the space in any way
+ * - Firefox, IE and Opera as per <br>
+ *
+ * One more case is trailing spaces before line breaks in elements with white-space: pre-line. For the following HTML:
+ *
+ * <p style="white-space: pre-line">1 
+ * 2</p>
+ *
+ * - Firefox and WebKit include the space in caret positions
+ * - IE does not support pre-line up to and including version 9
+ * - Opera ignores the space
+ * - Trailing space only renders if there is a non-collapsed character in the line 
+ *
+ * Problem is whether Rangy should ever acknowledge the space and if so, when. Another problem is whether this can be
+ * feature-tested
+ */
 rangy.createModule("TextRange", function(api, module) {
     api.requireModules( ["WrappedSelection"] );
 
     var UNDEF = "undefined";
     var CHARACTER = "character", WORD = "word";
     var dom = api.dom, util = api.util, DomPosition = dom.DomPosition;
+    var extend = util.extend;
 
     var log = log4javascript.getLogger("rangy.textrange");
 
@@ -48,6 +82,34 @@ rangy.createModule("TextRange", function(api, module) {
     var defaultLanguage = "en";
 
     var isDirectionBackward = api.Selection.isDirectionBackward;
+
+    // Test whether trailing spaces inside blocks are completely collapsed (as they are in WebKit, but not other
+    // browsers). Also test whether trailing spaces before <br> elements are collapsed
+    var trailingSpaceInBlockCollapses = true;
+    var trailingSpaceBeforeBrCollapses = true;
+    var trailingSpaceBeforeLineBreakInPreLineCollapses = true;
+    
+    var el = document.createElement("div");
+/*
+    if (util.isHostProperty(el, "innerText")) {
+        el.innerHTML = "<p>&nbsp; </p><p></p>";
+        document.body.appendChild(el);
+        trailingSpaceInBlockCollapses = (!/ /.test(el.innerText));
+        document.body.removeChild(el);
+
+        el.innerHTML = "&nbsp; <br>";
+        document.body.appendChild(el);
+        trailingSpaceBeforeBrCollapses = (!/ /.test(el.innerText));
+        document.body.removeChild(el);
+    }
+*/
+    
+    util.extend(api.features, {
+        trailingSpaceInBlockCollapses: trailingSpaceInBlockCollapses,
+        trailingSpaceBeforeBrCollapses: trailingSpaceBeforeBrCollapses
+    });
+    //alert([trailingSpaceBeforeBrCollapses, trailingSpaceInBlockCollapses])
+
 
     var getComputedStyleProperty;
     if (typeof window.getComputedStyle != UNDEF) {
@@ -178,7 +240,7 @@ rangy.createModule("TextRange", function(api, module) {
             return false;
         }
         var text = node.data;
-        if (text == "") {
+        if (text === "") {
             return true;
         }
         var parent = node.parentNode;
@@ -218,6 +280,9 @@ rangy.createModule("TextRange", function(api, module) {
             return true;
         }
 
+        // Algorithms further down the line decide whether the white space node is collapsed or not
+        //return false;
+
         // "While ancestor is not a block node and its parent is not null, set
         // ancestor to its parent."
         while (!isBlockNode(ancestor) && ancestor.parentNode) {
@@ -231,6 +296,8 @@ rangy.createModule("TextRange", function(api, module) {
         while (reference != ancestor) {
             // "Let reference be the node before it in tree order."
             reference = previousNode(reference);
+
+            log.info("reference is " + dom.inspectNode(reference), isWhitespaceNode(reference));
 
             // "If reference is a block node or a br, return true."
             if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
@@ -253,6 +320,8 @@ rangy.createModule("TextRange", function(api, module) {
             // "Let reference be the node after it in tree order, or null if there
             // is no such node."
             reference = nextNode(reference);
+
+            log.info("reference is " + dom.inspectNode(reference), isWhitespaceNode(reference));
 
             // "If reference is a block node or a br, return true."
             if (isBlockNode(reference) || isHtmlElement(reference, "br")) {
@@ -345,16 +414,22 @@ rangy.createModule("TextRange", function(api, module) {
         return new DomPosition(range.endContainer, range.endOffset);
     }
 
-    function TextPosition(character, position, isLeadingSpace, isTrailingSpace, collapsible) {
+    function TextPosition(character, position, isLeadingSpace, isTrailingSpace, isBr, collapsible) {
         this.character = character;
         this.position = position;
         this.isLeadingSpace = isLeadingSpace;
         this.isTrailingSpace = isTrailingSpace;
+        this.isBr = isBr;
         this.collapsible = collapsible;
     }
 
     TextPosition.prototype.toString = function() {
         return this.character;
+    };
+
+    TextPosition.prototype.collapsesPrecedingSpace = function() {
+        return (this.character == "\n") &&
+            ( (this.isBr && trailingSpaceBeforeBrCollapses) || (this.isTrailingSpace && trailingSpaceInBlockCollapses) );
     };
 
     function getTrailingSpace(el) {
@@ -500,8 +575,10 @@ rangy.createModule("TextRange", function(api, module) {
         return newPos;
     }
 
-    function createTransaction(win) {
-        return {};
+    function createTransaction(win, characterOptions) {
+        return {
+            characterOptions: characterOptions
+        };
     }
 
     function getTextNodeProperties(textNode) {
@@ -526,9 +603,10 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }
 
-    function getPossibleCharacterAt(pos, transaction) {
+    function getPossibleCharacterAt(pos, transaction, options) {
         var node = pos.node, offset = pos.offset;
-        var visibleChar = "", isLeadingSpace = false, isTrailingSpace = false, collapsible = false;
+        log.debug("getPossibleCharacterAt " + pos);
+        var visibleChar = "", isLeadingSpace = false, isTrailingSpace = false, isBr = false, collapsible = false;
         if (offset > 0) {
             if (node.nodeType == 3) {
                 var text = node.data;
@@ -546,10 +624,10 @@ rangy.createModule("TextRange", function(api, module) {
                         // position until the character at position is not from set."
 
                         // We also need to check for the case where we're in a pre-line and we have a space preceding a
-                        // line break, because such spaces are collapsed
+                        // line break, because such spaces are collapsed in some browsers
                         if (offset > 1 && spaceRegex.test(text.charAt(offset - 2))) {
                             log.debug("Character is a collapsible space preceded by another collapsible space, skipping");
-                        } else if (nodeInfo.preLine && text.charAt(offset) === "\n") {
+                        } else if (nodeInfo.preLine && text.charAt(offset) === "\n" && trailingSpaceBeforeBrCollapses && options.collapseSpaces) {
                             log.debug("Character is a collapsible space which is followed by a line break in a pre-line element, skipping");
                         } else {
                             log.debug("Character is a collapsible space not preceded by another collapsible space, adding");
@@ -569,6 +647,7 @@ rangy.createModule("TextRange", function(api, module) {
                     if (nodePassed.tagName.toLowerCase() == "br") {
                         log.debug("Node is br");
                         visibleChar = "\n";
+                        isBr = true;
                     } else {
                         log.debug("Getting trailing space for node " + dom.inspectNode(nodePassed));
                         visibleChar = getTrailingSpace(nodePassed);
@@ -583,18 +662,20 @@ rangy.createModule("TextRange", function(api, module) {
                 if (!visibleChar) {
                     var nextNode = node.childNodes[offset];
                     if (nextNode && nextNode.nodeType == 1 && !isCollapsedNode(nextNode)) {
-                        log.debug("Getting leading space for node " + dom.inspectNode(nextNode));
+                        log.debug("Getting leading space for node " + dom.inspectNode(nextNode) + " at position " + pos.inspect());
                         visibleChar = getLeadingSpace(nextNode);
                         if (visibleChar) {
+                            log.debug("GOT LEADING SPACE AND USING IT");
                             isLeadingSpace = true;
                         }
                     }
                 }
             }
         }
-        return new TextPosition(visibleChar, pos, isLeadingSpace, isTrailingSpace, collapsible);
+        return new TextPosition(visibleChar, pos, isLeadingSpace, isTrailingSpace, isBr, collapsible);
     }
 
+/*
     function getPreviousPossibleCharacter(pos, transaction) {
         var previousPos = pos, previous;
         while ( (previousPos = previousVisiblePosition(previousPos)) ) {
@@ -605,6 +686,7 @@ rangy.createModule("TextRange", function(api, module) {
         }
         return null;
     }
+*/
 
     function getNextPossibleCharacter(pos, transaction) {
         var nextPos = pos, next;
@@ -617,62 +699,67 @@ rangy.createModule("TextRange", function(api, module) {
         return null;
     }
 
-    function getCharacterAt(pos, transaction, precedingChars) {
+    function getCharacterAt(pos, transaction, precedingChars, options) {
         var possible = getPossibleCharacterAt(pos, transaction);
         var possibleChar = possible.character;
         var next, preceding;
-        log.debug("*** getCharacterAt got possible char '" + possibleChar + "' at position " + pos);
-        if (!possibleChar) {
-            return possible;
-        }
-        if (spacesRegex.test(possibleChar)) {
-            if (!precedingChars) {
-                // Work backwards until we have a non-space character
-                var previousPos = pos, previous, previousPossibleChar;
-                precedingChars = [];
-                while ( (previousPos = previousVisiblePosition(previousPos)) ) {
-                    previous = getPossibleCharacterAt(previousPos, transaction);
-                    previousPossibleChar = previous.character;
-                    if (previousPossibleChar !== "") {
-                        log.debug("Found preceding character '" + previousPossibleChar + "' at position " + previousPos);
-                        precedingChars.unshift(previous);
-                        if (previousPossibleChar != " " && previousPossibleChar != "\n") {
-                            break;
+        log.group("*** getCharacterAt got possible char '" + possibleChar + "' at position " + pos);
+        if (possibleChar) {
+            if (spacesRegex.test(possibleChar)) {
+                if (!precedingChars) {
+                    // Work backwards until we have a non-space character
+                    var previousPos = pos, previous, previousPossibleChar;
+                    precedingChars = [];
+                    while ( (previousPos = previousVisiblePosition(previousPos)) ) {
+                        previous = getPossibleCharacterAt(previousPos, transaction);
+                        previousPossibleChar = previous.character;
+                        if (previousPossibleChar !== "") {
+                            log.debug("Found preceding character '" + previousPossibleChar + "' at position " + previousPos);
+                            precedingChars.unshift(previous);
+                            if (previousPossibleChar != " " && previousPossibleChar != "\n") {
+                                break;
+                            }
                         }
                     }
                 }
+                preceding = precedingChars[precedingChars.length - 1];
+    
+                log.info("possible.collapsible: " + possible.collapsible + ", leading space: " + possible.isLeadingSpace + ", trailing space: " + possible.isTrailingSpace);
+                if (preceding) {
+                    log.info("preceding: '" + preceding + "' (" + preceding.position + "), possible: " + possible.position);
+                    log.info([possible.isLeadingSpace, possibleChar == "\n", [!preceding, preceding.isLeadingSpace, !dom.isOrIsAncestorOf(possible.position.node.parentNode, preceding.position.node), dom.inspectNode(possible.position.node.parentNode), dom.inspectNode(preceding.position.node)]]);
+                }
+    
+                // Disallow a collapsible space that follows a trailing space or line break, or is the first character
+                if (possibleChar === " " && possible.collapsible &&
+                        (!preceding || preceding.isTrailingSpace || preceding.character == "\n")) {
+                    log.info("Preceding character is a trailing space or non-existent or follows a line break and current possible character is a collapsible space, so space is collapsed");
+                    possible.character = "";
+                }
+    
+                // Disallow a collapsible space that is followed by a line break or is the last character
+                else if (possible.collapsible &&
+                        (!(next = getNextPossibleCharacter(pos, transaction))
+                            || (next.character == "\n" && options.collapseSpaceBeforeLineBreak && next.collapsesPrecedingSpace()))) {
+                    log.debug("Character is a space which is followed by a line break that collapses preceding spaces, or nothing, so collapsing");
+                    possible.character = "";
+                }
+    
+                // Collapse a br element that is followed by a trailing space
+                else if (possibleChar === "\n" && !possible.collapsible && (!(next = getNextPossibleCharacter(pos, transaction)) || next.isTrailingSpace)) {
+                    log.debug("Character is a br which is followed by a trailing space or nothing, collapsing");
+                    possible.character = "";
+                }
             }
-            preceding = precedingChars[precedingChars.length - 1];
-
-            log.info("possible.collapsible: " + possible.collapsible + ", leading space: " + possible.isLeadingSpace + ", trailing space: " + possible.isTrailingSpace + ", preceding: '" + preceding + "'");
-
-            // Disallow a collapsible space that follows a trailing space or line break, or is the first character
-            if (possibleChar === " " && possible.collapsible && (!preceding || preceding.isTrailingSpace || preceding.character === "\n")) {
-                log.info("Preceding character is a trailing space or non-existent and current possible character is a collapsible space, so space is collapsed");
-                possible.character = "";
-            }
-
-            // Disallow a collapsible space that is followed by a line break or is the last character
-            else if (possible.collapsible && (!(next = getNextPossibleCharacter(pos, transaction)) || (next.character == "\n"))) {
-                log.debug("Character is a space which is followed by a line break or nothing, collapsing");
-                possible.character = "";
-            }
-
-            // Collapse a br element that is followed by a trailing space
-            else if (possibleChar === "\n" && !possible.collapsible && (!(next = getNextPossibleCharacter(pos, transaction)) || next.isTrailingSpace)) {
-                log.debug("Character is a br which is followed by a trailing space or nothing, collapsing");
-                possible.character = "";
-            }
-
-            return possible;
-        } else {
-            return possible;
         }
+        log.groupEnd();
+        return possible;
     }
 
-    function createCharacterIterator(startPos, backward, endPos) {
+
+    function createCharacterIterator(startPos, backward, endPos, characterOptions) {
         log.info("createCharacterIterator called backwards " + backward + " and with endPos " + (endPos ? endPos.inspect() : ""));
-        var transaction = createTransaction(dom.getWindow(startPos.node));
+        var transaction = createTransaction(dom.getWindow(startPos.node), characterOptions);
 
         // Adjust the end position to ensure that it is actually reached
         if (endPos) {
@@ -697,7 +784,7 @@ rangy.createModule("TextRange", function(api, module) {
                     pos = nextVisiblePosition(pos);
                 }
                 if (pos) {
-                    textPos = getCharacterAt(pos, transaction);
+                    textPos = getCharacterAt(pos, transaction, null, characterOptions);
                     //log.debug("pos is " + pos.inspect() + ", endPos is " + (endPos ? endPos.inspect() : null) + ", equal is " + pos.equals(endPos));
                     if (endPos && pos.equals(endPos)) {
                         finished = true;
@@ -745,7 +832,7 @@ rangy.createModule("TextRange", function(api, module) {
     }
 
     // This function must create word and non-word tokens for the whole of the text supplied to it
-    function defaultTokenizer(chars, options) {
+    function defaultTokenizer(chars, wordOptions) {
         var word = chars.join(""), result, tokens = [];
 
         function createTokenFromRange(start, end, isWord) {
@@ -763,7 +850,7 @@ rangy.createModule("TextRange", function(api, module) {
 
         // Match words and mark characters
         var lastWordEnd = 0, wordStart, wordEnd;
-        while ( (result = options.wordRegex.exec(word)) ) {
+        while ( (result = wordOptions.wordRegex.exec(word)) ) {
             wordStart = result.index;
             wordEnd = wordStart + result[0].length;
 
@@ -773,7 +860,7 @@ rangy.createModule("TextRange", function(api, module) {
             }
 
             // Get trailing space characters for word
-            if (options.includeTrailingSpace) {
+            if (wordOptions.includeTrailingSpace) {
                 while (nonLineBreakWhiteSpaceRegex.test(chars[wordEnd])) {
                     ++wordEnd;
                 }
@@ -803,12 +890,12 @@ rangy.createModule("TextRange", function(api, module) {
             return -1;
         };
 
-    // Provide pair of iterators over text positions, tokenized. Transparently requests more text when next()
+    // Provides a pair of iterators over text positions, tokenized. Transparently requests more text when next()
     // is called and there is no more tokenized text
-    function createTokenizedTextProvider(pos, options) {
-        var forwardIterator = createCharacterIterator(pos, false);
-        var backwardIterator = createCharacterIterator(pos, true);
-        var tokenizer = options.tokenizer;
+    function createTokenizedTextProvider(pos, characterOptions, wordOptions) {
+        var forwardIterator = createCharacterIterator(pos, false, null, characterOptions);
+        var backwardIterator = createCharacterIterator(pos, true, null, characterOptions);
+        var tokenizer = wordOptions.tokenizer;
 
         // Consumes a word and the whitespace beyond it
         function consumeWord(forward) {
@@ -844,7 +931,7 @@ rangy.createModule("TextRange", function(api, module) {
         // Get initial word surrounding initial position and tokenize it
         var forwardChars = consumeWord(true);
         var backwardChars = consumeWord(false).reverse();
-        var tokens = tokenizer(backwardChars.concat(forwardChars), options);
+        var tokens = tokenizer(backwardChars.concat(forwardChars), wordOptions);
 
         // Create initial token buffers
         var forwardTokensBuffer = forwardChars.length ?
@@ -854,9 +941,9 @@ rangy.createModule("TextRange", function(api, module) {
             tokens.slice(0, arrayIndexOf(tokens, backwardChars.pop().token) + 1) : [];
 
         function inspectBuffer(buffer) {
-            var textPositions = [];
+            var textPositions = ["[" + buffer.length + "]"];
             for (var i = 0; i < buffer.length; ++i) {
-                textPositions[i] = "(word: " + buffer[i] + ", is word: " + buffer[i].isWord + ")";
+                textPositions.push("(word: " + buffer[i] + ", is word: " + buffer[i].isWord + ")");
             }
             return textPositions;
         }
@@ -865,22 +952,32 @@ rangy.createModule("TextRange", function(api, module) {
 
         return {
             nextEndToken: function() {
-                log.debug("nextEndToken, token buffer is " + forwardTokensBuffer);
-                var lastToken;
-                if (forwardTokensBuffer.length == 1 && !(lastToken = forwardTokensBuffer[0]).isWord) {
+                var lastToken, forwardChars;
+
+                // If we're down to the last token, consume character chunks until we have a word or run out of
+                // characters to consume
+                while ( forwardTokensBuffer.length == 1 &&
+                        !(lastToken = forwardTokensBuffer[0]).isWord &&
+                        (forwardChars = consumeWord(true)).length > 0) {
+
                     // Merge trailing non-word into next word and tokenize
-                    forwardTokensBuffer = tokenizer(lastToken.chars.concat(consumeWord(true)), options);
+                    forwardTokensBuffer = tokenizer(lastToken.chars.concat(forwardChars), wordOptions);
                 }
 
                 return forwardTokensBuffer.shift();
             },
 
             previousStartToken: function() {
-                log.debug("previousStartToken, token buffer is " + backwardTokensBuffer);
-                var lastToken;
-                if (backwardTokensBuffer.length == 1 && !(lastToken = backwardTokensBuffer[0]).isWord) {
+                var lastToken, backwardChars;
+
+                // If we're down to the last token, consume character chunks until we have a word or run out of
+                // characters to consume
+                while ( backwardTokensBuffer.length == 1 &&
+                        !(lastToken = backwardTokensBuffer[0]).isWord &&
+                        (backwardChars = consumeWord(false)).length > 0) {
+
                     // Merge leading non-word into next word and tokenize
-                    backwardTokensBuffer = tokenizer(consumeWord(false).reverse().concat(lastToken.chars), options);
+                    backwardTokensBuffer = tokenizer(backwardChars.reverse().concat(lastToken.chars), options);
                 }
 
                 return backwardTokensBuffer.pop();
@@ -894,6 +991,21 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }
 
+    var defaultCharacterOptions = {
+        collapseSpaceBeforeLineBreak: true
+    };
+
+    function createOptions(optionsParam, defaults) {
+        if (!optionsParam) {
+            return defaults;
+        } else {
+            var options = {};
+            extend(options, defaults);
+            extend(options, optionsParam);
+            return options;
+        }
+    }
+    
     var defaultWordOptions = {
         "en": {
             wordRegex: /[a-z0-9]+('[a-z0-9]+)*/gi,
@@ -909,8 +1021,8 @@ rangy.createModule("TextRange", function(api, module) {
         } else {
             lang = options.language || defaultLanguage;
             defaults = {};
-            util.extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
-            util.extend(defaults, options);
+            extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
+            extend(defaults, options);
             return defaults;
         }
     }
@@ -921,26 +1033,48 @@ rangy.createModule("TextRange", function(api, module) {
         wholeWordsOnly: false,
         wrap: false,
         direction: "forward",
-        wordOptions: null
+        wordOptions: null,
+        characterOptions: null
     };
 
-    function movePositionBy(pos, unit, count, options) {
+    var defaultMoveOptions = {
+        wordOptions: null,
+        characterOptions: null
+    };
+
+    var defaultExpandOptions = {
+        wordOptions: null,
+        characterOptions: null,
+        trim: false,
+        trimStart: true,
+        trimEnd: true
+    };
+
+    var defaultWordIteratorOptions = {
+        wordOptions: null,
+        characterOptions: null,
+        direction: "forward"
+    };
+
+    function movePositionBy(pos, unit, count, characterOptions, wordOptions) {
         log.info("movePositionBy called " + count);
-        var unitsMoved = 0, newPos = pos, textPos, absCount = Math.abs(count), token;
+        var unitsMoved = 0, newPos = pos, textPos, charIterator, nextTextPos, newTextPos, absCount = Math.abs(count), token;
         if (count !== 0) {
             var backward = (count < 0);
-            var it = createCharacterIterator(pos, backward);
 
             switch (unit) {
                 case CHARACTER:
-                    while ( (textPos = it.next()) && unitsMoved < absCount ) {
+                    charIterator = createCharacterIterator(pos, backward, null, characterOptions);
+                    while ( (textPos = charIterator.next()) && unitsMoved < absCount ) {
                         log.info("*** movePositionBy GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
                         ++unitsMoved;
-                        newPos = textPos.position;
+                        newTextPos = textPos;
                     }
+                    nextTextPos = textPos;
+                    charIterator.dispose();
                     break;
                 case WORD:
-                    var tokenizedTextProvider = createTokenizedTextProvider(pos, options);
+                    var tokenizedTextProvider = createTokenizedTextProvider(pos, characterOptions, wordOptions);
                     var next = backward ? tokenizedTextProvider.previousStartToken : tokenizedTextProvider.nextEndToken;
 
                     while ( (token = next()) && unitsMoved < absCount ) {
@@ -948,20 +1082,41 @@ rangy.createModule("TextRange", function(api, module) {
                         if (token.isWord) {
                             ++unitsMoved;
                             log.info("**** FOUND END OF WORD. unitsMoved NOW " + unitsMoved);
-                            newPos = (backward ? token.chars[0] : token.chars[token.chars.length - 1]).position;
+                            newTextPos = backward ? token.chars[0] : token.chars[token.chars.length - 1];
                         }
                     }
                     break;
                 default:
                     throw new Error("movePositionBy: unit '" + unit + "' not implemented");
             }
-            if (backward) {
-                log.warn("newPos: " + newPos);
-                newPos = previousVisiblePosition(newPos);
-                log.warn("newPos now: " + newPos);
-                unitsMoved = -unitsMoved;
+
+            // Perform any necessary position tweaks
+            if (newTextPos) {
+                newPos = newTextPos.position;
             }
-            it.dispose();
+            if (backward) {
+                log.debug("Adjusting position. Current newPos: " + newPos);
+                newPos = previousVisiblePosition(newPos);
+                log.debug("newPos now: " + newPos);
+                unitsMoved = -unitsMoved;
+            } else if (newTextPos && newTextPos.isLeadingSpace) {
+                // Tweak the position for the case of a leading space. The problem is that an uncollapsed leading space
+                // before a block element (for example, the line break between "1" and "2" in the following HTML:
+                // "1<p>2</p>") is considered to be attached to the position immediately before the block element, which
+                // corresponds with a different selection position in most browsers from the one we want (i.e. at the
+                // start of the contents of the block element). We get round this by advancing the position returned to
+                // the last possible equivalent visible position.
+                log.info("movePositionBy ended immediately after a leading space at " + newPos);
+                if (unit == WORD) {
+                    charIterator = createCharacterIterator(pos, false, null, characterOptions);
+                    nextTextPos = charIterator.next();
+                    charIterator.dispose();
+                }
+                if (nextTextPos) {
+                    newPos = previousVisiblePosition(nextTextPos.position);
+                    log.info("movePositionBy adjusted leading space position to " + newPos);
+                }
+            }
         }
 
         return {
@@ -970,18 +1125,16 @@ rangy.createModule("TextRange", function(api, module) {
         };
     }
 
-    function createRangeCharacterIterator(range) {
-        return createCharacterIterator(
-            getRangeStartPosition(range),
-            false,
-            getRangeEndPosition(range)
-        );
+    function createRangeCharacterIterator(range, characterOptions, backward) {
+        var rangeStart = getRangeStartPosition(range), rangeEnd = getRangeEndPosition(range);
+        var itStart = backward ? rangeEnd : rangeStart, itEnd = backward ? rangeStart : rangeEnd;
+        return createCharacterIterator(itStart, !!backward, itEnd, characterOptions);
     }
 
-    function getRangeCharacters(range) {
+    function getRangeCharacters(range, characterOptions) {
         log.info("getRangeCharacters called on range " + range.inspect());
 
-        var chars = [], it = createRangeCharacterIterator(range), textPos;
+        var chars = [], it = createRangeCharacterIterator(range, characterOptions), textPos;
         while ( (textPos = it.next()) ) {
             log.info("*** GOT CHAR " + textPos.character + "[" + textPos.character.charCodeAt(0) + "]");
             chars.push(textPos);
@@ -1000,13 +1153,14 @@ rangy.createModule("TextRange", function(api, module) {
         return returnVal;
     }
 
-    function findTextFromPosition(initialPos, searchTerm, isRegex, searchScopeRange, options) {
+    function findTextFromPosition(initialPos, searchTerm, isRegex, searchScopeRange, findOptions) {
         log.debug("findTextFromPosition called with search term " + searchTerm + ", initialPos " + initialPos.inspect() + " within range " + searchScopeRange.inspect());
-        var backward = isDirectionBackward(options.direction);
+        var backward = isDirectionBackward(findOptions.direction);
         var it = createCharacterIterator(
             initialPos,
             backward,
-            backward ? getRangeStartPosition(searchScopeRange) : getRangeEndPosition(searchScopeRange)
+            backward ? getRangeStartPosition(searchScopeRange) : getRangeEndPosition(searchScopeRange),
+            findOptions
         );
         var text = "", chars = [], textPos, currentChar, matchStartIndex, matchEndIndex;
         var result, insideRegexMatch;
@@ -1015,7 +1169,7 @@ rangy.createModule("TextRange", function(api, module) {
         function handleMatch(startIndex, endIndex) {
             var startPos = previousVisiblePosition(chars[startIndex].position);
             var endPos = chars[endIndex - 1].position;
-            var valid = (!options.wholeWordsOnly || isWholeWord(startPos, endPos, options.wordOptions));
+            var valid = (!findOptions.wholeWordsOnly || isWholeWord(startPos, endPos, findOptions.wordOptions));
 
             return {
                 startPos: startPos,
@@ -1027,7 +1181,7 @@ rangy.createModule("TextRange", function(api, module) {
         while ( (textPos = it.next()) ) {
             currentChar = textPos.character;
             currentChar = textPos.character;
-            if (!isRegex && !options.caseSensitive) {
+            if (!isRegex && !findOptions.caseSensitive) {
                 currentChar = currentChar.toLowerCase();
             }
 
@@ -1073,7 +1227,7 @@ rangy.createModule("TextRange", function(api, module) {
 
     // Extensions to the rangy.dom utility object
 
-    util.extend(dom, {
+    extend(dom, {
         nextNode: nextNode,
         previousNode: previousNode,
         hasInnerText: hasInnerText
@@ -1084,15 +1238,23 @@ rangy.createModule("TextRange", function(api, module) {
     // Extensions to the Rangy Range object
 
     function createRangeBoundaryMover(isStart, collapse) {
-        // Unit can be "character" or "word"
-        return function(unit, count, options) {
+        /*
+        Unit can be "character" or "word"
+        Options:
+
+        - includeTrailingSpace
+        - wordRegex
+        - tokenizer
+        - collapseSpaceBeforeLineBreak
+        */
+        return function(unit, count, moveOptions) {
             if (typeof count == "undefined") {
                 count = unit;
                 unit = CHARACTER;
             }
-            if (unit == WORD) {
-                options = createWordOptions(options);
-            }
+            moveOptions = createOptions(moveOptions, defaultMoveOptions);
+            var characterOptions = createOptions(moveOptions.characterOptions, defaultCharacterOptions);
+            var wordOptions = createWordOptions(moveOptions.wordOptions);
             log.debug("** moving boundary. start: " + isStart + ", unit: " + unit + ", count: " + count);
 
             var boundaryIsStart = isStart;
@@ -1101,31 +1263,64 @@ rangy.createModule("TextRange", function(api, module) {
                 this.collapse(!boundaryIsStart);
             }
             var rangePositionGetter = boundaryIsStart ? getRangeStartPosition : getRangeEndPosition;
-            var moveResult = movePositionBy(rangePositionGetter(this), unit, count, options);
+            var moveResult = movePositionBy(rangePositionGetter(this), unit, count, characterOptions, wordOptions);
             var newPos = moveResult.position;
             this[boundaryIsStart ? "setStart" : "setEnd"](newPos.node, newPos.offset);
             return moveResult.unitsMoved;
         };
     }
 
-    util.extend(api.rangePrototype, {
+    function createRangeTrimmer(isStart) {
+        return function(characterOptions) {
+            characterOptions = createOptions(characterOptions, defaultCharacterOptions);
+            var textPos;
+            var it = createRangeCharacterIterator(this, characterOptions, !isStart);
+            var trimCharCount = 0;
+            while ( (textPos = it.next()) && allWhiteSpaceRegex.test(textPos.character) ) {
+                ++trimCharCount;
+            }
+            it.dispose();
+            var trimmed = (trimCharCount > 0);
+            if (trimmed) {
+                this[isStart ? "moveStart" : "moveEnd"](
+                    "character",
+                    isStart ? trimCharCount : -trimCharCount,
+                    { characterOptions: characterOptions }
+                );
+            }
+            return trimmed;
+        };
+    }
+    
+    extend(api.rangePrototype, {
         moveStart: createRangeBoundaryMover(true, false),
 
         moveEnd: createRangeBoundaryMover(false, false),
 
         move: createRangeBoundaryMover(true, true),
+        
+        trimStart: createRangeTrimmer(true),
 
-        expand: function(unit, options) {
+        trimEnd: createRangeTrimmer(false),
+        
+        trim: function(characterOptions) {
+            var startTrimmed = this.trimStart(characterOptions), endTrimmed = this.trimEnd(characterOptions);
+            return startTrimmed || endTrimmed;
+        },
+
+        expand: function(unit, expandOptions) {
             var moved = false;
+            expandOptions = createOptions(expandOptions, defaultExpandOptions);
+            var characterOptions = createOptions(expandOptions.characterOptions, defaultCharacterOptions);
             if (!unit) {
                 unit = CHARACTER;
             }
             if (unit == WORD) {
-                options = createWordOptions(options);
+                var wordOptions = createWordOptions(expandOptions.wordOptions);
                 var startPos = getRangeStartPosition(this);
                 var endPos = getRangeEndPosition(this);
 
-                var startTokenizedTextProvider = createTokenizedTextProvider(startPos, options);
+                var startTokenizedTextProvider = createTokenizedTextProvider(startPos, characterOptions, wordOptions);
                 var startToken = startTokenizedTextProvider.nextEndToken();
                 var newStartPos = previousVisiblePosition(startToken.chars[0].position);
                 var endToken, newEndPos;
@@ -1133,7 +1328,7 @@ rangy.createModule("TextRange", function(api, module) {
                 if (this.collapsed) {
                     endToken = startToken;
                 } else {
-                    var endTokenizedTextProvider = createTokenizedTextProvider(endPos, options);
+                    var endTokenizedTextProvider = createTokenizedTextProvider(endPos, characterOptions, wordOptions);
                     endToken = endTokenizedTextProvider.previousStartToken();
                 }
                 newEndPos = endToken.chars[endToken.chars.length - 1].position;
@@ -1146,26 +1341,38 @@ rangy.createModule("TextRange", function(api, module) {
                     this.setEnd(newEndPos.node, newEndPos.offset);
                     moved = true;
                 }
+
+                if (expandOptions.trim) {
+                    if (expandOptions.trimStart) {
+                        moved = this.trimStart(characterOptions) || moved;
+                    }
+                    if (expandOptions.trimEnd) {
+                        moved = this.trimEnd(characterOptions) || moved;
+                    }
+                }
+                
                 return moved;
             } else {
-                return this.moveEnd(CHARACTER, 1);
+                return this.moveEnd(CHARACTER, 1, expandOptions);
             }
         },
 
-        text: function() {
-            return this.collapsed ? "" : getRangeCharacters(this).join("");
+        text: function(characterOptions) {
+            return this.collapsed ?
+                "" : getRangeCharacters(this, createOptions(characterOptions, defaultCharacterOptions)).join("");
         },
 
-        selectCharacters: function(containerNode, startIndex, endIndex) {
+        selectCharacters: function(containerNode, startIndex, endIndex, characterOptions) {
+            var moveOptions = { characterOptions: characterOptions };
             this.selectNodeContents(containerNode);
             this.collapse(true);
-            this.moveStart(startIndex);
+            this.moveStart("character", startIndex, moveOptions);
             this.collapse(true);
-            this.moveEnd(endIndex - startIndex);
+            this.moveEnd("character", endIndex - startIndex, moveOptions);
         },
 
         // Character indexes are relative to the start of node
-        toCharacterRange: function(containerNode) {
+        toCharacterRange: function(containerNode, characterOptions) {
             if (!containerNode) {
                 containerNode = document.body;
             }
@@ -1176,13 +1383,13 @@ rangy.createModule("TextRange", function(api, module) {
             if (rangeStartsBeforeNode) {
                 rangeBetween.setStart(this.startContainer, this.startOffset);
                 rangeBetween.setEnd(parent, nodeIndex);
-                startIndex = -rangeBetween.text().length;
+                startIndex = -rangeBetween.text(characterOptions).length;
             } else {
                 rangeBetween.setStart(parent, nodeIndex);
                 rangeBetween.setEnd(this.startContainer, this.startOffset);
-                startIndex = rangeBetween.text().length;
+                startIndex = rangeBetween.text(characterOptions).length;
             }
-            endIndex = startIndex + this.text().length;
+            endIndex = startIndex + this.text(characterOptions).length;
 
             return {
                 start: startIndex,
@@ -1190,23 +1397,22 @@ rangy.createModule("TextRange", function(api, module) {
             };
         },
 
-        findText: function(searchTermParam, optionsParam) {
+        findText: function(searchTermParam, findOptions) {
             // Set up options
-            var defaults = util.extend({}, defaultFindOptions);
-            var options = optionsParam ? util.extend(defaults, optionsParam) : defaults;
+            findOptions = createOptions(findOptions, defaultFindOptions);
 
             // Create word options if we're matching whole words only
-            if (options.wholeWordsOnly) {
-                options.wordOptions = createWordOptions(options.wordOptions);
+            if (findOptions.wholeWordsOnly) {
+                findOptions.wordOptions = createWordOptions(findOptions.wordOptions);
 
-                // We don't want trailing spaces
-                options.wordOptions.includeTrailingSpace = false;
+                // We don't ever want trailing spaces for search results
+                findOptions.wordOptions.includeTrailingSpace = false;
             }
 
-            var backward = isDirectionBackward(options.direction);
+            var backward = isDirectionBackward(findOptions.direction);
 
             // Create a range representing the search scope if none was provided
-            var searchScopeRange = options.withinRange;
+            var searchScopeRange = findOptions.withinRange;
             if (!searchScopeRange) {
                 searchScopeRange = api.createRange();
                 searchScopeRange.selectNodeContents(this.getDocument());
@@ -1215,7 +1421,7 @@ rangy.createModule("TextRange", function(api, module) {
             // Examine and prepare the search term
             var searchTerm = searchTermParam, isRegex = false;
             if (typeof searchTerm == "string") {
-                if (!options.caseSensitive) {
+                if (!findOptions.caseSensitive) {
                     searchTerm = searchTerm.toLowerCase();
                 }
             } else {
@@ -1238,7 +1444,7 @@ rangy.createModule("TextRange", function(api, module) {
             // Try to find a match and ignore invalid ones
             var findResult;
             while (true) {
-                findResult = findTextFromPosition(pos, searchTerm, isRegex, searchScopeRange, options);
+                findResult = findTextFromPosition(pos, searchTerm, isRegex, searchScopeRange, findOptions);
 
                 if (findResult) {
                     if (findResult.valid) {
@@ -1250,7 +1456,7 @@ rangy.createModule("TextRange", function(api, module) {
                         // after the match
                         pos = backward ? findResult.startPos : findResult.endPos;
                     }
-                } else if (options.wrap && !wrappedAround) {
+                } else if (findOptions.wrap && !wrappedAround) {
                     // No result found but we're wrapping around and limiting the scope to the unsearched part of the range
                     searchScopeRange = searchScopeRange.cloneRange();
                     if (backward) {
@@ -1271,30 +1477,34 @@ rangy.createModule("TextRange", function(api, module) {
 
         pasteHtml: function(html) {
             this.deleteContents();
-            var frag = this.createContextualFragment(html);
-            this.insertNode(frag);
+            if (html) {
+                var frag = this.createContextualFragment(html);
+                var lastChild = frag.lastChild;
+                this.insertNode(frag);
+                this.collapseAfter(lastChild);
+            }
         }
     });
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
     // Extensions to the Rangy Selection object
+    
+    function createSelectionTrimmer(methodName) {
+        return function(characterOptions) {
+            var trimmed = false;
+            this.changeEachRange(function(range) {
+                trimmed = range[methodName](characterOptions) || trimmed;
+            });
+            return trimmed;
+        }
+    }
 
-    util.extend(api.selectionPrototype, {
-        expand: function(unit, options) {
-            var ranges = this.getAllRanges(), rangeCount = ranges.length;
-            var backward = this.isBackward();
-
-            for (var i = 0, len = ranges.length; i < len; ++i) {
-                ranges[i].expand(unit, options);
-            }
-
-            this.removeAllRanges();
-            if (backward && rangeCount == 1) {
-                this.addRange(ranges[0], true);
-            } else {
-                this.setRanges(ranges);
-            }
+    extend(api.selectionPrototype, {
+        expand: function(unit, expandOptions) {
+            this.changeEachRange(function(range) {
+                range.expand(unit, expandOptions);
+            });
         },
 
         move: function(unit, count, options) {
@@ -1305,14 +1515,18 @@ rangy.createModule("TextRange", function(api, module) {
                 this.setSingleRange(range);
             }
         },
+        
+        trimStart: createSelectionTrimmer("trimStart"),
+        trimEnd: createSelectionTrimmer("trimEnd"),
+        trim: createSelectionTrimmer("trim"),
 
-        selectCharacters: function(containerNode, startIndex, endIndex, direction) {
+        selectCharacters: function(containerNode, startIndex, endIndex, direction, characterOptions) {
             var range = api.createRange(containerNode);
-            range.selectCharacters(containerNode, startIndex, endIndex);
+            range.selectCharacters(containerNode, startIndex, endIndex, characterOptions);
             this.setSingleRange(range, direction);
         },
 
-        saveCharacterRanges: function(containerNode) {
+        saveCharacterRanges: function(containerNode, characterOptions) {
             var ranges = this.getAllRanges(), rangeCount = ranges.length;
             var characterRanges = [];
 
@@ -1320,8 +1534,9 @@ rangy.createModule("TextRange", function(api, module) {
 
             for (var i = 0, len = ranges.length; i < len; ++i) {
                 characterRanges[i] = {
-                    range: ranges[i].toCharacterRange(containerNode),
-                    backward: backward
+                    range: ranges[i].toCharacterRange(containerNode, characterOptions),
+                    backward: backward,
+                    characterOptions: characterOptions
                 };
             }
 
@@ -1333,15 +1548,15 @@ rangy.createModule("TextRange", function(api, module) {
             for (var i = 0, len = characterRanges.length, range, characterRange; i < len; ++i) {
                 characterRange = characterRanges[i];
                 range = api.createRange(containerNode);
-                range.selectCharacters(containerNode, characterRange.range.start, characterRange.range.end);
+                range.selectCharacters(containerNode, characterRange.range.start, characterRange.range.end, characterRange.characterOptions);
                 this.addRange(range, characterRange.backward);
             }
         },
 
-        text: function() {
+        text: function(characterOptions) {
             var rangeTexts = [];
             for (var i = 0, len = this.rangeCount; i < len; ++i) {
-                rangeTexts[i] = this.getRangeAt(i).text();
+                rangeTexts[i] = this.getRangeAt(i).text(characterOptions);
             }
             return rangeTexts.join("");
         }
@@ -1351,19 +1566,22 @@ rangy.createModule("TextRange", function(api, module) {
 
     // Extensions to the core rangy object
 
-    api.innerText = function(el) {
+    api.innerText = function(el, characterOptions) {
         var range = api.createRange(el);
         range.selectNodeContents(el);
-        var text = range.text();
+        var text = range.text(characterOptions);
         range.detach();
+        log.debug("innerText is '" + text.replace(/\s/g, function(matched) { return "[" + matched.charCodeAt(0) + "]"; }) + "'");
         return text;
     };
 
-    api.createWordIterator = function(startNode, startOffset, direction, options) {
-        options = createWordOptions(options);
+    api.createWordIterator = function(startNode, startOffset, iteratorOptions) {
+        iteratorOptions = createOptions(iteratorOptions, defaultWordIteratorOptions);
+        characterOptions = createOptions(iteratorOptions.characterOptions, defaultCharacterOptions);
+        wordOptions = createWordOptions(iteratorOptions.wordOptions);
         var startPos = new DomPosition(startNode, startOffset);
-        var tokenizedTextProvider = createTokenizedTextProvider(startPos, options);
-        var backward = isDirectionBackward(direction);
+        var tokenizedTextProvider = createTokenizedTextProvider(startPos, characterOptions, wordOptions);
+        var backward = isDirectionBackward(iteratorOptions.direction);
 
         return {
             next: function() {

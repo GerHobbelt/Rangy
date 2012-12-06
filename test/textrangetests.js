@@ -104,15 +104,28 @@ xn.test.suite("Text Range module tests", function(s) {
     });
 
     s.test("isCollapsedWhitespaceNode", function(t) {
-        t.el.innerHTML = '<div>1</div> <div>2</div>';
-        if (t.el.childNodes[1].nodeType == 3) {
-            t.assert(rangy.textRange.isCollapsedWhitespaceNode(t.el.childNodes[1]));
+        t.el.innerHTML = '<div><span>1</span> </div>';
+        if (t.el.firstChild.lastChild) {
+            t.assert(rangy.textRange.isCollapsedWhitespaceNode(t.el.firstChild.lastChild));
 
         } else {
             // IE < 9 case
-            t.assertEquals(t.el.childNodes.length, 2);
+            //t.assertEquals(t.el.childNodes.length, 2);
         }
     });
+
+    /*
+        s.test("isCollapsedWhitespaceNode", function(t) {
+            t.el.innerHTML = '<div>1</div> <div>2</div>';
+            if (t.el.childNodes[1].nodeType == 3) {
+                t.assert(rangy.textRange.isCollapsedWhitespaceNode(t.el.childNodes[1]));
+    
+            } else {
+                // IE < 9 case
+                t.assertEquals(t.el.childNodes.length, 2);
+            }
+        });
+    */
 
     s.test("VisiblePositionIterator", function(t) {
         t.el.innerHTML = '<div>1<b style="display: none">2<br></b><script>var foo = 1</script><span></span><br></div><div>2</div>';
@@ -197,7 +210,11 @@ xn.test.suite("Text Range module tests", function(s) {
 
     s.test("innerText on simple text with trailing space", function(t) {
         t.el.innerHTML = 'One Two ';
-        t.assertEquals(rangy.innerText(t.el), "One Two");
+        var expectedText = rangy.features.trailingSpaceInBlockCollapses ? "One Two" : "One Two ";
+        t.assertEquals(rangy.innerText(t.el), expectedText);
+        t.assertEquals(rangy.innerText(t.el, {
+            collapseSpaceBeforeLineBreak: false
+        }), "One Two ");
     });
 
     s.test("innerText on simple text with two trailing spaces", function(t) {
@@ -228,6 +245,11 @@ xn.test.suite("Text Range module tests", function(s) {
     s.test("innerText on simple text with non-breaking space in span 3", function(t) {
         t.el.innerHTML = '1<span> &nbsp;</span> 2';
         t.assertEquals(rangy.innerText(t.el), "1 \u00a0 2");
+    });
+
+    s.test("innerText on one paragraph", function(t) {
+        t.el.innerHTML = '<p>1</p>';
+        t.assertEquals(rangy.innerText(t.el), "1");
     });
 
     s.test("innerText on two paragraphs", function(t) {
@@ -365,6 +387,56 @@ xn.test.suite("Text Range module tests", function(s) {
             t.assertEquals(range.text(), "2 3");
         });
     }
+
+    s.test("range move() on block inside block (issue 114)", function(t) {
+        t.el.innerHTML = '<div>1<div>2</div></div>';
+        var firstTextNode = t.el.firstChild.firstChild;
+        var innerDiv = firstTextNode.nextSibling;
+        var secondTextNode = innerDiv.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(firstTextNode, 1);
+        range.move("character", 1);
+        var newRange = range.cloneRange();
+        newRange.move("character", 1);
+
+        t.assertEquals(range.startContainer, secondTextNode);
+        t.assertEquals(range.startOffset, 0);
+    });
+
+    s.test("range move() on block inside block inside block (issue 114)", function(t) {
+        t.el.innerHTML = '<div>1<div><div>2</div></div></div>';
+        var firstTextNode = t.el.firstChild.firstChild;
+        var innerDiv = firstTextNode.nextSibling;
+        var secondTextNode = innerDiv.firstChild.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(firstTextNode, 1);
+        range.move("character", 1);
+        var newRange = range.cloneRange();
+        newRange.move("character", 1);
+
+        t.assertEquals(range.startContainer, secondTextNode);
+        t.assertEquals(range.startOffset, 0);
+    });
+
+/*
+    s.test("selection move() on block inside block (issue 114)", function(t) {
+        t.el.innerHTML = '<div>1<div>2</div></div>';
+        var firstTextNode = t.el.firstChild.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(firstTextNode, 1);
+        var selRange = range.cloneRange();
+
+        var sel = rangy.getSelection();
+        sel.addRange(range);
+        sel.move("character", 1);
+        selRange.setEnd(sel.focusNode, sel.focusOffset);
+        t.assertEquals(selRange.text(), "\n");
+
+        sel.move("character", 1);
+        selRange.setEnd(sel.focusNode, sel.focusOffset);
+        t.assertEquals(selRange.text(), "\n2");
+    });
+*/
 
     s.test("selectCharacters on text node", function(t) {
         t.el.innerHTML = 'One Two';
@@ -898,6 +970,82 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(iterator.next().toString(), "two");
         t.assertEquals(iterator.next().toString(), " ");
         t.assertEquals(iterator.next().toString(), "One");
+    });
+
+    s.test("moveStart word document start boundary test", function(t) {
+        var range = rangy.createRange();
+        range.collapseBefore(document.body);
+
+        while (range.moveStart("word", -1)) {}
+    });
+
+    s.test("moveEnd word document end boundary test", function(t) {
+        var range = rangy.createRange();
+        range.collapseAfter(document.body);
+
+        while (range.moveStart("word", 1)) {}
+    });
+
+    s.test("trimStart test", function(t) {
+        t.el.innerHTML = 'One two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.setStartAndEnd(textNode, 3, 8);
+        range.trimStart();
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.endOffset, 8);
+        range.trimStart();
+        t.assertEquals(range.startOffset, 4);
+        t.assertEquals(range.endOffset, 8);
+
+        t.el.innerHTML = 'One&nbsp;&nbsp;two three';
+        range.selectCharacters(t.el, 3, 8);
+        t.assertEquals(range.text(), "\u00a0\u00a0two");
+
+        var charRange = range.toCharacterRange();
+
+        range.trimStart();
+        t.assertEquals(range.text(), "two");
+
+        var trimmedCharRange = range.toCharacterRange();
+        t.assertEquals(charRange.start, 3);
+        t.assertEquals(charRange.end, 8);
+        t.assertEquals(trimmedCharRange.start, 5);
+        t.assertEquals(trimmedCharRange.end, 8);
+    });
+
+    s.test("trimEnd test", function(t) {
+        t.el.innerHTML = 'One two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.setStartAndEnd(textNode, 3, 8);
+        range.trimEnd();
+        t.assertEquals(range.startOffset, 3);
+        t.assertEquals(range.endOffset, 7);
+        range.trimEnd();
+        t.assertEquals(range.startOffset, 3);
+        t.assertEquals(range.endOffset, 7);
+
+        t.el.innerHTML = 'One two&nbsp;&nbsp;three';
+        range.selectCharacters(t.el, 4, 9);
+        t.assertEquals(range.text(), "two\u00a0\u00a0");
+
+        var charRange = range.toCharacterRange();
+
+        range.trimEnd();
+        t.assertEquals(range.text(), "two");
+
+        var trimmedCharRange = range.toCharacterRange();
+        t.assertEquals(charRange.start, 4);
+        t.assertEquals(charRange.end, 9);
+        t.assertEquals(trimmedCharRange.start, 4);
+        t.assertEquals(trimmedCharRange.end, 7);
+    });
+
+    s.test("Speed test", function(t) {
+        //t.el.innerHTML = new Array(10000).join("<p>One <b>two <i>three</i></b> four<br> </p>\n<p>four </p>");
+        var range = rangy.createRange();
+        var text = range.text();
     });
 
 }, false);
