@@ -155,8 +155,6 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(t.el), "One Two");
     });
 
-    return;
-
     s.test("innerText on simple text with double space", function(t) {
         t.el.innerHTML = 'One  Two';
         t.assertEquals(rangy.innerText(t.el), "One Two");
@@ -177,13 +175,18 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(t.el), "One Two");
     });
 
-    s.test("innerText on simple text with trailing space", function(t) {
-        t.el.innerHTML = 'One Two ';
-        var expectedText = rangy.features.trailingSpaceInBlockCollapses ? "One Two" : "One Two ";
-        t.assertEquals(rangy.innerText(t.el), expectedText);
+    s.test("innerText on paragraph with trailing space (includeBlockContentTrailingSpace true)", function(t) {
+        t.el.innerHTML = '<div>One Two </div><div>Three</div>';
         t.assertEquals(rangy.innerText(t.el, {
-            collapseSpaceBeforeLineBreak: false
-        }), "One Two ");
+            includeBlockContentTrailingSpace: true
+        }), "One Two \nThree");
+    });
+
+    s.test("innerText on paragraph with trailing space (includeBlockContentTrailingSpace false)", function(t) {
+        t.el.innerHTML = '<div>One Two </div><div>Three</div>';
+        t.assertEquals(rangy.innerText(t.el, {
+            includeBlockContentTrailingSpace: false
+        }), "One Two\nThree");
     });
 
     s.test("innerText on simple text with two trailing spaces", function(t) {

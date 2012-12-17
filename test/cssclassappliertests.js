@@ -553,7 +553,6 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         //t.assertEquals('<span class="c1">[one]</span><br><br> two', htmlAndRangeToString(testEl, range));
     });
 
-
     s.test("Test issue 101 (adding style properties)", function(t) {
         var applier = rangy.createCssClassApplier("c1", {
             elementTagName: "a",
@@ -603,6 +602,21 @@ xn.test.suite("CSS Class Applier module tests", function(s) {
         t.assertEquals('x[1<span class="c2">2</span>3]x', htmlAndRangeToString(testEl, range));
     });
 
+    s.test("Issue 139 (Merge bug)", function(t) {
+        var applier = rangy.createCssClassApplier("test");
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '<div><span class="test">[1<span class="test"></span></span> 2]</div>');
+        applier.applyToRange(range);
+        t.assertEquals('<div><span class="test">[1 2]</span></div>', htmlAndRangeToString(testEl, range));
+    });
+
+    s.test("Undo to range with empty span with class", function(t) {
+        var applier = rangy.createCssClassApplier("test");
+        var testEl = document.getElementById("test");
+        var range = createRangeInHtml(testEl, '<div>[1<span class="test"><span class="test"></span></span>2]</div>');
+        applier.undoToRange(range);
+        t.assertEquals('<div>[12]</div>', htmlAndRangeToString(testEl, range));
+    });
 
     if (rangy.features.selectionSupportsMultipleRanges) {
         s.test("Undo to multiple ranges", function(t) {
