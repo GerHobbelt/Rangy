@@ -221,7 +221,8 @@ rangy.createModule("DomUtil", function(api, module) {
     function getBody(doc) {
         return util.isHostObject(doc, "body") ? doc.body : doc.getElementsByTagName("body")[0];
     }
-
+    
+    // This looks bad. Is it worth it?
     function isWindow(obj) {
         return obj && util.isHostMethod(obj, "setTimeout") && util.isHostObject(obj, "document");
     }
@@ -307,7 +308,7 @@ rangy.createModule("DomUtil", function(api, module) {
             return '"' + node.data + '"';
         } else if (node.nodeType == 1) {
             var idAttr = node.id ? ' id="' + node.id + '"' : "";
-            return "<" + node.nodeName + idAttr + ">[" + node.childNodes.length + "][" + node.innerHTML.slice(0, 10) + "]";
+            return "<" + node.nodeName + idAttr + ">[" + node.childNodes.length + "][" + node.innerHTML.slice(0, 20) + "]";
         } else {
             return node.nodeName;
         }
@@ -319,6 +320,19 @@ rangy.createModule("DomUtil", function(api, module) {
             fragment.appendChild(child);
         }
         return fragment;
+    }
+
+    var getComputedStyleProperty;
+    if (typeof window.getComputedStyle != UNDEF) {
+        getComputedStyleProperty = function(el, propName) {
+            return getWindow(el).getComputedStyle(el, null)[propName];
+        };
+    } else if (typeof document.documentElement.currentStyle != UNDEF) {
+        getComputedStyleProperty = function(el, propName) {
+            return el.currentStyle[propName];
+        };
+    } else {
+        module.fail("No means of obtaining computed style properties found");
     }
 
     function NodeIterator(root) {
@@ -423,6 +437,7 @@ rangy.createModule("DomUtil", function(api, module) {
         getRootContainer: getRootContainer,
         comparePoints: comparePoints,
         inspectNode: inspectNode,
+        getComputedStyleProperty: getComputedStyleProperty,
         fragmentFromNodeChildren: fragmentFromNodeChildren,
         createIterator: createIterator,
         DomPosition: DomPosition

@@ -187,8 +187,7 @@ rangy.createModule("WrappedRange", function(api, module) {
                 };
             } else {
                 rangeProto.selectNodeContents = function(node) {
-                    this.setStart(node, 0);
-                    this.setEnd(node, DomRange.getEndOffset(node));
+                    this.setStartAndEnd(node, 0, dom.getNodeLength(node));
                 };
             }
 
@@ -325,7 +324,6 @@ rangy.createModule("WrappedRange", function(api, module) {
         // for inputs and images, plus optimizations.
         var getTextRangeBoundaryPosition = function(textRange, wholeRangeContainerElement, isStart, isCollapsed, startInfo) {
             var workingRange = textRange.duplicate();
-
             workingRange.collapse(isStart);
             var containerElement = workingRange.parentElement();
 
@@ -341,13 +339,20 @@ rangy.createModule("WrappedRange", function(api, module) {
             // Deal with nodes that cannot "contain rich HTML markup". In practice, this means form inputs, images and
             // similar. See http://msdn.microsoft.com/en-us/library/aa703950%28VS.85%29.aspx
             if (!containerElement.canHaveHTML) {
-                return new DomPosition(containerElement.parentNode, dom.getNodeIndex(containerElement));
+                var pos = new DomPosition(containerElement.parentNode, dom.getNodeIndex(containerElement));
+                return {
+                    boundaryPosition: pos,
+                    nodeInfo: {
+                        nodeIndex: pos.offset,
+                        containerElement: pos.node
+                    }
+                };
             }
 
             var workingNode = dom.getDocument(containerElement).createElement("span");
 
-            // Workaround for HTML5 Shiv's insane violation of document.createElement(). See Rangy issue 104 and HTML 5 Shiv
-            // issue 64: https://github.com/aFarkas/html5shiv/issues/64
+            // Workaround for HTML5 Shiv's insane violation of document.createElement(). See Rangy issue 104 and HTML5
+            // Shiv issue 64: https://github.com/aFarkas/html5shiv/issues/64
             if (workingNode.parentNode) {
                 workingNode.parentNode.removeChild(workingNode);
             }
@@ -549,7 +554,7 @@ rangy.createModule("WrappedRange", function(api, module) {
                 startBoundary = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, true, false);
                 start = startBoundary.boundaryPosition;
 
-                // An optimization used here is that if the start and end boundaries have teh same parent element, the
+                // An optimization used here is that if the start and end boundaries have the same parent element, the
                 // search scope for the end boundary can be limited to exclude the portion of the element that precedes
                 // the start boundary
                 end = getTextRangeBoundaryPosition(this.textRange, rangeContainerElement, false, false,
