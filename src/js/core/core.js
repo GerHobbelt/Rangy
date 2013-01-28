@@ -69,6 +69,8 @@ rangy = rangy || (function() {
         return range && areHostMethods(range, textRangeMethods) && areHostProperties(range, textRangeProperties);
     }
 
+    var modules = {};
+    
     var api = {
         version: "%%build:version%%",
         initialized: false,
@@ -86,7 +88,7 @@ rangy = rangy || (function() {
 
         features: {},
 
-        modules: {},
+        modules: modules,
         config: {
             alertOnFail: true,
             alertOnWarn: false,
@@ -137,6 +139,33 @@ rangy = rangy || (function() {
         fail("hasOwnProperty not supported");
     }
 
+    // Test whether Array.prototype.slice can be relied on for NodeLists and use an alternative toArray() if not
+    (function() {
+        var el = document.createElement("div");
+        el.appendChild(document.createElement("span"));
+        var slice = [].slice;
+        var toArray;
+        try {
+            if (slice.call(el.childNodes, 0)[0].nodeType == 1) {
+                toArray = function(arrayLike) {
+                    return slice.call(arrayLike, 0);
+                };
+            }
+        } catch (e) {}
+
+        if (!toArray) {
+            toArray = function(arrayLike) {
+                var arr = [];
+                for (var i = 0, len = arrayLike.length; i < len; ++i) {
+                    arr[i] = arrayLike[i];
+                }
+                return arr;
+            };
+        }
+
+        api.util.toArray = toArray;
+    })();
+
 
     // Very simple event handler wrapper function that doesn't attempt to solve issue such as "this" handling or
     // normalization of event properties
@@ -156,7 +185,16 @@ rangy = rangy || (function() {
     api.util.addListener = addListener;
 
     var initListeners = [];
-    var moduleInitializers = [];
+    
+    function consoleLog(msg) {
+        if (isHostObject(window, "console") && isHostMethod(window.console, "log")) {
+            window.console.log(msg);
+        }
+    }
+    
+    function getErrorDesc(ex) {
+        return ex.message || ex.description || String(ex);
+    }
 
     // Initialization
     function init() {
@@ -200,16 +238,22 @@ rangy = rangy || (function() {
             implementsTextRange: implementsTextRange
         };
 
-        // Initialize modules and call init listeners
-        var allListeners = moduleInitializers.concat(initListeners);
-        for (var i = 0, len = allListeners.length; i < len; ++i) {
+        // Initialize modules
+        var module, errorMessage;
+        for (var moduleName in modules) {
+            if ( (module = modules[moduleName]) instanceof Module ) {
+                module.init();
+            }
+        }
+        
+        // Call init listeners
+        for (var i = 0, len = initListeners.length; i < len; ++i) {
             try {
-                allListeners[i](api);
+                initListeners[i](api);
             } catch (ex) {
-                if (isHostObject(window, "console") && isHostMethod(window.console, "log")) {
-                    window.console.log("Rangy init listener threw an exception. Continuing.", ex);
-                }
-                log.error("Init listener threw an exception. Continuing.", ex);
+                errorMessage = "Rangy init listener threw an exception. Continuing. Detail: " + getErrorDesc(ex);
+                log.error(errorMessage, ex);
+                consoleLog(errorMessage);
             }
         }
     }
@@ -244,10 +288,11 @@ rangy = rangy || (function() {
 
     api.createMissingNativeApi = createMissingNativeApi;
 
-    function Module(name) {
+    function Module(name, initializer) {
         this.name = name;
         this.initialized = false;
         this.supported = false;
+        this.init = initializer;
     }
 
     Module.prototype = {
@@ -273,25 +318,35 @@ rangy = rangy || (function() {
     };
 
     api.createModule = function(name, initFunc) {
-        var module = new Module(name);
-        api.modules[name] = module;
-
-        moduleInitializers.push(function(api) {
-            initFunc(api, module);
-            module.initialized = true;
-            module.supported = true;
+        var module = new Module(name, function() {
+            if (!module.initialized) {
+                module.initialized = true;
+                try {
+                    initFunc(api, module);
+                    module.supported = true;
+                } catch (ex) {
+                    var errorMessage = "Module '" + name + "' failed to load: " + getErrorDesc(ex);
+                    log.error(errorMessage, ex);
+                    consoleLog(errorMessage);
+                }
+            }
         });
+        modules[name] = module;
     };
 
-    api.requireModules = function(modules) {
-        for (var i = 0, len = modules.length, module, moduleName; i < len; ++i) {
-            moduleName = modules[i];
-            module = api.modules[moduleName];
+    api.requireModules = function(moduleNames) {
+        for (var i = 0, len = moduleNames.length, module, moduleName; i < len; ++i) {
+            moduleName = moduleNames[i];
+            
+            module = modules[moduleName];
             if (!module || !(module instanceof Module)) {
-                throw new Error("Module '" + moduleName + "' not found");
+                throw new Error("required module '" + moduleName + "' not found");
             }
+
+            module.init();
+            
             if (!module.supported) {
-                throw new Error("Module '" + moduleName + "' not supported");
+                throw new Error("required module '" + moduleName + "' not supported");
             }
         }
     };

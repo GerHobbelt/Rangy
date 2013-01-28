@@ -833,7 +833,7 @@ rangy.createModule("DomRange", function(api, module) {
         isValid: function() {
             return isRangeValid(this);
         },
-
+        
         inspect: function() {
             return inspect(this);
         }
@@ -949,7 +949,7 @@ rangy.createModule("DomRange", function(api, module) {
             /**
              * Convenience method to set a range's start and end boundaries. Overloaded as follows:
              * - Two parameters (node, offset) creates a collapsed range at that position
-             * - three parameters (node, startOffset, endOffset) creates a range contained with node starting at
+             * - Three parameters (node, startOffset, endOffset) creates a range contained with node starting at
              *   startOffset and ending at endOffset
              * - Four parameters (startNode, startOffset, endNode, endOffset) creates a range starting at startOffset in
              *   startNode and ending at endOffset in endNode
@@ -971,6 +971,10 @@ rangy.createModule("DomRange", function(api, module) {
                 }
 
                 boundaryUpdater(this, sc, so, ec, eo);
+            },
+            
+            setBoundary: function(node, offset, isStart) {
+                this["set" + (isStart ? "Start" : "End")](node, offset);
             },
 
             setStartBefore: createBeforeAfterNodeSetter(true, true),

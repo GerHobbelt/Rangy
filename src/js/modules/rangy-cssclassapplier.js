@@ -129,21 +129,34 @@ rangy.createModule("CssClassApplier", function(api, module) {
     }
 
     function rangeSelectsAnyText(range, textNode) {
-        var textRange = range.cloneRange();
-        textRange.selectNodeContents(textNode);
+        var textNodeRange = range.cloneRange();
+        textNodeRange.selectNodeContents(textNode);
 
-        var intersectionRange = textRange.intersection(range);
+        var intersectionRange = textNodeRange.intersection(range);
         var text = intersectionRange ? intersectionRange.toString() : "";
-        textRange.detach();
+        textNodeRange.detach();
 
         return text != "";
     }
 
     function getEffectiveTextNodes(range) {
-        log.debug("Checking node ")
-        return range.getNodes([3], function(textNode) {
-            return rangeSelectsAnyText(range, textNode);
-        });
+        var nodes = range.getNodes([3]);
+        
+        // Optimization as per issue 145
+        
+        // Remove non-intersecting text nodes from the start of the range
+        var start = 0, node;
+        while ( (node = nodes[start]) && !rangeSelectsAnyText(range, node) ) {
+            ++start;
+        }
+
+        // Remove non-intersecting text nodes from the start of the range
+        var end = nodes.length - 1;
+        while ( (node = nodes[end]) && !rangeSelectsAnyText(range, node) ) {
+            --end;
+        }
+        
+        return nodes.slice(start, end + 1);
     }
 
     function elementsHaveSameNonClassAttributes(el1, el2) {
@@ -187,20 +200,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
         return true;
     }
 
-    var getComputedStyleProperty;
-
-    if (typeof window.getComputedStyle != "undefined") {
-        getComputedStyleProperty = function(el, propName) {
-            return dom.getWindow(el).getComputedStyle(el, null)[propName];
-        };
-    } else if (typeof document.documentElement.currentStyle != "undefined") {
-        getComputedStyleProperty = function(el, propName) {
-            return el.currentStyle[propName];
-        };
-    } else {
-        module.fail("No means of obtaining computed style properties found");
-    }
-
+    var getComputedStyleProperty = dom.getComputedStyleProperty;
     var isEditableElement;
 
     (function() {
@@ -749,9 +749,8 @@ rangy.createModule("CssClassApplier", function(api, module) {
                         this.applyToTextNode(textNode, positionsToPreserve);
                     }
                 }
-                range.setStart(textNodes[0], 0);
                 textNode = textNodes[textNodes.length - 1];
-                range.setEnd(textNode, textNode.length);
+                range.setStartAndEnd(textNodes[0], 0, textNode, textNode.length);
                 if (this.normalize) {
                     this.postApply(textNodes, range, positionsToPreserve, false);
                 }
@@ -809,8 +808,7 @@ rangy.createModule("CssClassApplier", function(api, module) {
                     }
 
                     // Ensure the range is still valid
-                    range.setStart(textNodes[0], 0);
-                    range.setEnd(lastTextNode, lastTextNode.length);
+                    range.setStartAndEnd(textNodes[0], 0, lastTextNode, lastTextNode.length);
                 }
 
                 log.info("Undo set range to '" + textNodes[0].data + "', '" + textNode.data + "'");
@@ -832,10 +830,6 @@ rangy.createModule("CssClassApplier", function(api, module) {
                 this.undoToRange(ranges[i], ranges);
             }
             log.groupEnd();
-
-            ranges.forEach(function(range) {
-                log.debug("Range: " + range.inspect(), range.toString());
-            });
 
             return ranges;
         },
