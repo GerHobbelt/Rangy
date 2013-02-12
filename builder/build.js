@@ -294,7 +294,7 @@ function zip() {
 var actions = [
     deleteBuildDir,
     createBuildDir,
-    checkoutSvnRepository,
+    /* checkoutSvnRepository, */
     getVersion,
     concatCoreScripts,
     copyModuleScripts,
