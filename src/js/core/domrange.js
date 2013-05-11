@@ -17,7 +17,7 @@ rangy.createModule("DomRange", function(api, module) {
     var getNodeLength = dom.getNodeLength;
     var arrayContains = dom.arrayContains;
     var getRootContainer = dom.getRootContainer;
-    
+    var crashyTextNodes = api.features.crashyTextNodes;
 
     /*----------------------------------------------------------------------------------------------------------------*/
 
@@ -29,7 +29,7 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function getRangeDocument(range) {
-        return getDocument(range.startContainer);
+        return range.document || getDocument(range.startContainer);
     }
 
     function getBoundaryBeforeNode(node) {
@@ -391,7 +391,8 @@ rangy.createModule("DomRange", function(api, module) {
     }
 
     function isOrphan(node) {
-        return !arrayContains(rootContainerNodeTypes, node.nodeType) && !getDocumentOrFragmentContainer(node, true);
+        return (crashyTextNodes && dom.isBrokenNode(node)) ||
+            !arrayContains(rootContainerNodeTypes, node.nodeType) && !getDocumentOrFragmentContainer(node, true);
     }
 
     function isValidOffset(node, offset) {
@@ -535,9 +536,7 @@ rangy.createModule("DomRange", function(api, module) {
     var s2s = 0, s2e = 1, e2e = 2, e2s = 3;
     var n_b = 0, n_a = 1, n_b_a = 2, n_i = 3;
 
-    function RangePrototype() {}
-
-    RangePrototype.prototype = {
+    util.extend(api.rangePrototype, {
         compareBoundaryPoints: function(how, range) {
             assertRangeValid(this);
             assertSameDocumentOrFragment(this.startContainer, range.startContainer);
@@ -898,7 +897,7 @@ rangy.createModule("DomRange", function(api, module) {
         inspect: function() {
             return inspect(this);
         }
-    };
+    });
 
     function copyComparisonConstantsToObject(obj) {
         obj.START_TO_START = s2s;
@@ -988,7 +987,10 @@ rangy.createModule("DomRange", function(api, module) {
             }
         }
 
-        constructor.prototype = new RangePrototype();
+        // Set up inheritance
+        var F = function() {};
+        F.prototype = api.rangePrototype;
+        constructor.prototype = new F();
 
         util.extend(constructor.prototype, {
             setStart: function(node, offset) {
@@ -1198,13 +1200,14 @@ rangy.createModule("DomRange", function(api, module) {
         range.startOffset = startOffset;
         range.endContainer = endContainer;
         range.endOffset = endOffset;
+        range.document = dom.getDocument(startContainer);
 
         updateCollapsedAndCommonAncestor(range);
     }
 
     function detach(range) {
         assertNotDetached(range);
-        range.startContainer = range.startOffset = range.endContainer = range.endOffset = null;
+        range.startContainer = range.startOffset = range.endContainer = range.endOffset = range.document = null;
         range.collapsed = range.commonAncestorContainer = null;
     }
 
@@ -1213,12 +1216,11 @@ rangy.createModule("DomRange", function(api, module) {
         this.startOffset = 0;
         this.endContainer = doc;
         this.endOffset = 0;
+        this.document = doc;
         updateCollapsedAndCommonAncestor(this);
     }
 
     createPrototypeRange(Range, updateBoundaries, detach);
-
-    api.rangePrototype = RangePrototype.prototype;
 
     util.extend(Range, {
         rangeProperties: rangeProperties,
