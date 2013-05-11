@@ -329,6 +329,8 @@ rangy.createModule("WrappedSelection", function(api, module) {
         this.refresh();
     }
 
+    WrappedSelection.prototype = api.selectionPrototype;
+
     function deleteProperties(sel) {
         sel.win = sel.anchorNode = sel.focusNode = sel._ranges = null;
         sel.rangeCount = sel.anchorOffset = sel.focusOffset = 0;
@@ -394,12 +396,12 @@ rangy.createModule("WrappedSelection", function(api, module) {
         // Ensure that the selection becomes of type "Control"
         var doc = getDocument(ranges[0].startContainer);
         var controlRange = getBody(doc).createControlRange();
-        for (var i = 0, el; i < rangeCount; ++i) {
+        for (var i = 0, el, len = ranges.length; i < len; ++i) {
             el = getSingleElementFromRange(ranges[i]);
             try {
                 controlRange.add(el);
             } catch (ex) {
-                throw module.createError("setRanges(): Element within the one of the specified Ranges could not be added to control selection (does it have layout?)");
+                throw module.createError("setRanges(): Element within one of the specified Ranges could not be added to control selection (does it have layout?)");
             }
         }
         controlRange.select();
@@ -726,7 +728,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
     };
 
     function assertNodeInSameDocument(sel, node) {
-        if (sel.anchorNode && (getDocument(sel.anchorNode) !== getDocument(node))) {
+        if (sel.win.document != getDocument(node)) {
             throw new DOMException("WRONG_DOCUMENT_ERR");
         }
     }
@@ -834,7 +836,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
                 range.setStartAndEnd(node, offset);
             }
             this.setSingleRange(range, this.isBackward());
-        }
+        };
     }
 
     selProto.setStart = createStartOrEndSetter(true);
@@ -864,7 +866,7 @@ rangy.createModule("WrappedSelection", function(api, module) {
 
     selProto.containsNode = function(node, allowPartial) {
         return this.eachRange( function(range) {
-            return range.containsNode(node, allowPartial)
+            return range.containsNode(node, allowPartial);
         }, true );
     };
 
