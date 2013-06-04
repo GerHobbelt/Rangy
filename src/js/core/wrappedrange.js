@@ -1,6 +1,4 @@
-rangy.createModule("WrappedRange", function(api, module) {
-    api.requireModules( ["DomUtil", "DomRange"] );
-
+rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
     var WrappedRange, WrappedTextRange;
     var dom = api.dom;
     var util = api.util;
@@ -179,20 +177,11 @@ rangy.createModule("WrappedRange", function(api, module) {
 
             /*--------------------------------------------------------------------------------------------------------*/
 
-            // Test for and correct Firefox 2 behaviour with selectNodeContents on text nodes: it collapses the range to
-            // the 0th character of the text node
-            range.selectNodeContents(testTextNode);
-            if (range.startContainer == testTextNode && range.endContainer == testTextNode &&
-                    range.startOffset == 0 && range.endOffset == testTextNode.length) {
-                rangeProto.selectNodeContents = function(node) {
-                    this.nativeRange.selectNodeContents(node);
-                    updateRangeProperties(this);
-                };
-            } else {
-                rangeProto.selectNodeContents = function(node) {
-                    this.setStartAndEnd(node, 0, dom.getNodeLength(node));
-                };
-            }
+            // Always use DOM4-compliant selectNodeContents implementation: it's simpler and less code than testing
+            // whether the native implementation can be trusted
+            rangeProto.selectNodeContents = function(node) {
+                this.setStartAndEnd(node, 0, dom.getNodeLength(node));
+            };
 
             /*--------------------------------------------------------------------------------------------------------*/
 
