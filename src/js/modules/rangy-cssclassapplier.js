@@ -12,9 +12,7 @@
  * Version: %%build:version%%
  * Build date: %%build:date%%
  */
-rangy.createModule("CssClassApplier", function(api, module) {
-    api.requireModules( ["WrappedSelection", "WrappedRange"] );
-
+rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     var dom = api.dom;
     var DomPosition = dom.DomPosition;
     var contains = dom.arrayContains;
@@ -871,6 +869,9 @@ rangy.createModule("CssClassApplier", function(api, module) {
 
         isAppliedToRanges: function(ranges) {
             var i = ranges.length;
+            if (i == 0) {
+                return false;
+            }
             while (i--) {
                 if (!this.isAppliedToRange(ranges[i])) {
                     return false;
