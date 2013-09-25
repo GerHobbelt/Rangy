@@ -525,7 +525,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
             if (this.docSelection.type == CONTROL) {
                 addRangeToControlSelection(this, range);
             } else {
-                WrappedRange.rangeToTextRange(range).select();
+                api.WrappedTextRange.rangeToTextRange(range).select();
                 this._ranges[0] = range;
                 this.rangeCount = 1;
                 this.isCollapsed = this._ranges[0].collapsed;
@@ -841,7 +841,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     selProto.setStart = createStartOrEndSetter(true);
     selProto.setEnd = createStartOrEndSetter(false);
     
-    // Add cheeky select() method to Range prototype
+    // Add select() method to Range prototype. Any existing selection will be removed.
     api.rangePrototype.select = function(direction) {
         getSelection( this.getDocument() ).setSingleRange(this, direction);
     };
