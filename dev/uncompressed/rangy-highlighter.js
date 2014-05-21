@@ -4,10 +4,10 @@
  *
  * Depends on Rangy core, TextRange and CssClassApplier modules.
  *
- * Copyright 2013, Tim Down
+ * Copyright 2014, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.804
- * Build date: 8 December 2013
+ * Version: 1.3alpha.525.876bad6
+ * Build date: 21 May 2014
  */
 rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
     var dom = api.dom;
@@ -481,7 +481,12 @@ rangy.createModule("Highlighter", ["ClassApplier"], function(api, module) {
                     );
                 }
 
-                classApplier = this.classAppliers[parts[3]];
+                classApplier = this.classAppliers[ parts[3] ];
+                
+                if (!classApplier) {
+                    throw new Error("No class applier found for class '" + parts[3] + "'");
+                }
+
                 highlight = new Highlight(this.doc, characterRange, classApplier, this.converter, parseInt(parts[2]), containerElementId);
                 highlight.apply();
                 highlights.push(highlight);

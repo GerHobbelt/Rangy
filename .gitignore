@@ -1,3 +1,6 @@
 # Editor backup files
 *~
 *.bak
+
+# node/NPM
+node_modules

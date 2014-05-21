@@ -24,10 +24,10 @@
  *
  * Depends on Rangy core.
  *
- * Copyright 2013, Tim Down
+ * Copyright 2014, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.804
- * Build date: 8 December 2013
+ * Version: 1.3alpha.525.876bad6
+ * Build date: 21 May 2014
  */
 
 /**
@@ -187,38 +187,6 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         }
     };
 
-    function createOptions(optionsParam, defaults) {
-        if (!optionsParam) {
-            return defaults;
-        } else {
-            var options = {};
-            extend(options, defaults);
-            extend(options, optionsParam);
-            return options;
-        }
-    }
-
-    function createWordOptions(options) {
-        var lang, defaults;
-        if (!options) {
-            return defaultWordOptions[defaultLanguage];
-        } else {
-            lang = options.language || defaultLanguage;
-            defaults = {};
-            extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
-            extend(defaults, options);
-            return defaults;
-        }
-    }
-
-    function createCharacterOptions(options) {
-        return createOptions(options, defaultCharacterOptions);
-    }
-
-    function createCaretCharacterOptions(options) {
-        return createOptions(options, defaultCaretCharacterOptions);
-    }
-    
     var defaultFindOptions = {
         caseSensitive: false,
         withinRange: null,
@@ -248,6 +216,44 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         direction: "forward"
     };
 
+    function createOptions(optionsParam, defaults) {
+        if (!optionsParam) {
+            return defaults;
+        } else {
+            var options = {};
+            extend(options, defaults);
+            extend(options, optionsParam, true);
+            return options;
+        }
+    }
+
+    function createWordOptions(options) {
+        var lang, defaults;
+        if (!options) {
+            return defaultWordOptions[defaultLanguage];
+        } else {
+            lang = options.language || defaultLanguage;
+            defaults = {};
+            extend(defaults, defaultWordOptions[lang] || defaultWordOptions[defaultLanguage]);
+            extend(defaults, options);
+            return defaults;
+        }
+    }
+
+    function createCharacterOptions(options) {
+        return createOptions(options, defaultCharacterOptions);
+    }
+
+    function createCaretCharacterOptions(options) {
+        return createOptions(options, defaultCaretCharacterOptions);
+    }
+
+    function createFindOptions(optionsParam) {
+        var options = createOptions(optionsParam, defaultFindOptions);
+        options.characterOptions = createCharacterOptions(options.wordOptions);
+        return options;
+    }
+    
     /*----------------------------------------------------------------------------------------------------------------*/
 
     /* DOM utility functions */
@@ -1161,7 +1167,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         var pos = startPos, finished = false;
 
         function next() {
-            var newPos = null, charPos = null;
+            var charPos = null;
             if (backward) {
                 charPos = pos;
                 if (!finished) {
@@ -1420,7 +1426,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
             initialPos,
             backward,
             initialPos.session.getRangeBoundaryPosition(searchScopeRange, backward),
-            findOptions
+            findOptions.characterOptions
         );
         var text = "", chars = [], pos, currentChar, matchStartIndex, matchEndIndex;
         var result, insideRegexMatch;
@@ -1677,7 +1683,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         findText: createEntryPointFunction(
             function(session, searchTermParam, findOptions) {
                 // Set up options
-                findOptions = createOptions(findOptions, defaultFindOptions);
+                findOptions = createFindOptions(findOptions);
     
                 // Create word options if we're matching whole words only
                 if (findOptions.wholeWordsOnly) {

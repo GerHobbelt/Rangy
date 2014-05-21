@@ -7,10 +7,10 @@
  *
  * Depends on Rangy core.
  *
- * Copyright 2013, Tim Down
+ * Copyright 2014, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.804
- * Build date: 8 December 2013
+ * Version: 1.3alpha.525.876bad6
+ * Build date: 21 May 2014
  */
 rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     var dom = api.dom;
@@ -74,19 +74,19 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     function movePosition(position, oldParent, oldIndex, newParent, newIndex) {
-        var node = position.node, offset = position.offset;
-        var newNode = node, newOffset = offset;
+        var posNode = position.node, posOffset = position.offset;
+        var newNode = posNode, newOffset = posOffset;
 
-        if (node == newParent && offset > newIndex) {
+        if (posNode == newParent && posOffset > newIndex) {
             ++newOffset;
         }
 
-        if (node == oldParent && (offset == oldIndex  || offset == oldIndex + 1)) {
+        if (posNode == oldParent && (posOffset == oldIndex  || posOffset == oldIndex + 1)) {
             newNode = newParent;
             newOffset += newIndex - oldIndex;
         }
 
-        if (node == oldParent && offset > oldIndex + 1) {
+        if (posNode == oldParent && posOffset > oldIndex + 1) {
             --newOffset;
         }
 
@@ -140,7 +140,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             children.push(child);
         }
         if (removeNode) {
-            node.parentNode.removeChild(node);
+            removePreservingPositions(node, positionsToPreserve);
         }
         return children;
     }
@@ -411,6 +411,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             var textNodes = this.textNodes;
             var firstTextNode = textNodes[0];
             if (textNodes.length > 1) {
+                var firstTextNodeIndex = dom.getNodeIndex(firstTextNode);
                 var textParts = [], combinedTextLength = 0, textNode, parent;
                 for (var i = 0, len = textNodes.length, j, position; i < len; ++i) {
                     textNode = textNodes[i];
@@ -426,6 +427,14 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                                 if (position.node == textNode) {
                                     position.node = firstTextNode;
                                     position.offset += combinedTextLength;
+                                }
+                                // Handle case where both text nodes precede the position within the same parent node
+                                if (position.node == parent && position.offset > firstTextNodeIndex) {
+                                    --position.offset;
+                                    if (position.offset == firstTextNodeIndex + 1 && i < len - 1) {
+                                        position.node = firstTextNode;
+                                        position.offset = combinedTextLength;
+                                    }
                                 }
                             }
                         }
@@ -719,7 +728,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 return applier.isEmptyContainer(el);
             });
             
-            var rangesToPreserve = [range]
+            var rangesToPreserve = [range];
             var positionsToPreserve = getRangeBoundaries(rangesToPreserve);
             
             for (var i = 0, node; node = nodesToRemove[i++]; ) {

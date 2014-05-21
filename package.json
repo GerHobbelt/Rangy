@@ -1,0 +1,24 @@
+{
+    "name": "rangy",
+    "version": "1.0.0-pre",
+    "description": "Selection and Cursor Positioning Helper",
+    "homepage": "http://rangy.com/",
+    "author": "Steven Levithan <steves_list@hotmail.com>",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/GerHobbelt/rangy.git"
+    },
+    "keywords": [
+        "rangy",
+        "selection"
+    ],
+    "dependencies": {
+    },
+    "devDependencies": {
+        "uglify-js": ">=2.4.13",
+    	"jshint": ">=2.5.1",
+    	"rimraf": ">=2.2.8",
+    	"wrench": ">=1.5.8"
+    }
+}

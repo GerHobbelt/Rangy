@@ -14,7 +14,7 @@ var buildSpec = {
 
 var buildDir = "build/";
 
-var svnDir = buildDir + "checkout/", srcDir = svnDir + "js/";
+var svnDir = buildDir + "checkout/", srcDir = "src/js/";
 var zipDir;
 var uncompressedBuildDir;
 var coreFilename = "rangy-core.js";
@@ -71,7 +71,7 @@ function deleteBuildDir() {
 
 function createBuildDir() {
     fs.mkdirSync(buildDir);
-    fs.mkdirSync(svnDir);
+    //fs.mkdirSync(svnDir);
     console.log("Created build directory " + path.resolve(buildDir));
     callback();
 }
@@ -84,14 +84,20 @@ function checkoutSvnRepository() {
 }
 
 function getVersion() {
-    exec("svnversion", function(error, stdout, stderr) {
-        buildVersion = buildSpec.baseVersion + "." + stdout.trim().replace(/:/g, "_");
-        zipDir = buildDir + "rangy-" + buildVersion + "/";
-        fs.mkdirSync(zipDir);
-        uncompressedBuildDir = zipDir + "uncompressed/";
-        fs.mkdirSync(uncompressedBuildDir);
-        console.log("Got SVN version ", stdout, stderr);
-        callback();
+    // use the total count of commits as an svnversion equivalent, but also add the hash as a subversion to ensure we clearly identify the current checkout:
+    //
+    // Note: an alternative might have been using `git describe --always` but the output of that one is a bit arbitrary and these we can predict very well. 
+    exec("git rev-list HEAD --count", function(error, stdout, stderr) {
+        var count = stdout.trim();
+        exec("git log -n 1", function(error, stdout, stderr) {
+            buildVersion = buildSpec.baseVersion + "." + count + "." + stdout.replace(/(\r\n|\n|\r)/gm," ").trim().replace(/^.*commit ([a-f0-9]+).*$/g, "$1").substr(0, 7);
+            zipDir = buildDir + "rangy-" + buildVersion + "/";
+            fs.mkdirSync(zipDir);
+            uncompressedBuildDir = zipDir + "uncompressed/";
+            fs.mkdirSync(uncompressedBuildDir);
+            console.log("Got SVN version ", stdout, stderr);
+            callback();
+        });
     });
 }
 
@@ -125,11 +131,15 @@ function copyModuleScripts() {
 }
 
 function clean() {
-    var rimraf = require("rimraf");
-    rimraf(svnDir, function() {
-        console.log("Deleted SVN directory");
+    if (0) {
+        var rimraf = require("rimraf");
+        rimraf(svnDir, function() {
+            console.log("Deleted SVN directory");
+            callback();
+        });
+    } else {
         callback();
-    });
+    }
 }
 
 function removeLoggingFromScripts() {

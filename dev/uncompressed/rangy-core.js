@@ -2,10 +2,10 @@
  * Rangy, a cross-browser JavaScript range and selection library
  * http://code.google.com/p/rangy/
  *
- * Copyright 2013, Tim Down
+ * Copyright 2014, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.804
- * Build date: 8 December 2013
+ * Version: 1.3alpha.525.876bad6
+ * Build date: 21 May 2014
  */
 
 (function(global) {
@@ -75,7 +75,7 @@
     var modules = {};
 
     var api = {
-        version: "1.3alpha.804",
+        version: "1.3alpha.525.876bad6",
         initialized: false,
         supported: true,
 
@@ -136,12 +136,15 @@
                 if (props.hasOwnProperty(i)) {
                     o = obj[i];
                     p = props[i];
-                    //if (deep) alert([o !== null, typeof o == "object", p !== null, typeof p == "object"])
                     if (deep && o !== null && typeof o == "object" && p !== null && typeof p == "object") {
                         api.util.extend(o, p, true);
                     }
                     obj[i] = p;
                 }
+            }
+            // Special case for toString, which does not show up in for...in loops in IE <= 8
+            if (props.hasOwnProperty("toString")) {
+                obj.toString = props.toString;
             }
             return obj;
         };
@@ -776,7 +779,7 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
         }
         if (node.nodeType == 1) {
             var idAttr = node.id ? ' id="' + node.id + '"' : "";
-            return "<" + node.nodeName + idAttr + ">[" + getNodeIndex(node) + "][" + node.childNodes.length + "][" + (node.innerHTML || "[innerHTML not supported]").slice(0, 25) + "]";
+            return "<" + node.nodeName + idAttr + ">[index:" + getNodeIndex(node) + ",length:" + node.childNodes.length + "][" + (node.innerHTML || "[innerHTML not supported]").slice(0, 25) + "]";
         }
         return node.nodeName;
     }
@@ -1994,7 +1997,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
                 // Check if the contents can be surrounded. Specifically, this means whether the range partially selects
                 // no non-text nodes.
                 var iterator = new RangeIterator(this, true);
-                var boundariesInvalid = (iterator._first && (isNonTextPartiallySelected(iterator._first, this)) ||
+                var boundariesInvalid = (iterator._first && isNonTextPartiallySelected(iterator._first, this) ||
                         (iterator._last && isNonTextPartiallySelected(iterator._last, this)));
                 iterator.detach();
                 return !boundariesInvalid;
