@@ -25,7 +25,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     // Utility function to support direction parameters in the API that may be a string ("backward" or "forward") or a
     // Boolean (true for backwards).
     function isDirectionBackward(dir) {
-        return (typeof dir == "string") ? /^backward(s)?$/i.test(dir) : !!dir;
+        return (typeof dir === "string") ? /^backward(s)?$/i.test(dir) : !!dir;
     }
 
     function getWindow(win, methodName) {
@@ -52,7 +52,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     function winSelectionIsBackward(sel) {
         var backward = false;
         if (sel.anchorNode) {
-            backward = (dom.comparePoints(sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset) == 1);
+            backward = (dom.comparePoints(sel.anchorNode, sel.anchorOffset, sel.focusNode, sel.focusOffset) === 1);
         }
         return backward;
     }
@@ -73,7 +73,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
             var doc = getWindow(winParam, "isSelectionValid").document, nativeSel = doc.selection;
 
             // Check whether the selection TextRange is actually contained within the correct document
-            return (nativeSel.type != "None" || getDocument(nativeSel.createRange().parentElement()) == doc);
+            return (nativeSel.type !== "None" || getDocument(nativeSel.createRange().parentElement()) == doc);
         };
     } else if (implementsWinGetSelection) {
         getNativeSelection = getWinSelection;
@@ -101,7 +101,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     features.selectionHasExtend = selectionHasExtend;
     
     // Test if rangeCount exists
-    var selectionHasRangeCount = (typeof testSelection.rangeCount == NUMBER);
+    var selectionHasRangeCount = (typeof testSelection.rangeCount === NUMBER);
     features.selectionHasRangeCount = selectionHasRangeCount;
 
     var selectionSupportsMultipleRanges = false;
@@ -117,7 +117,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
         } : null;
 
     if (util.areHostMethods(testSelection, ["addRange", "getRangeAt", "removeAllRanges"]) &&
-            typeof testSelection.rangeCount == NUMBER && features.implementsDomRange) {
+            typeof testSelection.rangeCount === NUMBER && features.implementsDomRange) {
 
         (function() {
             // Previously an iframe was used but this caused problems in some circumstances in IE, so tests are
@@ -150,7 +150,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                 r1.setStart(textNode, 1);
                 r1.collapse(true);
                 sel.addRange(r1);
-                collapsedNonEditableSelectionsSupported = (sel.rangeCount == 1);
+                collapsedNonEditableSelectionsSupported = (sel.rangeCount === 1);
                 sel.removeAllRanges();
 
                 // Test whether the native selection is capable of supporting multiple ranges
@@ -162,7 +162,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                     sel.addRange(r1);
                     sel.addRange(r2);
 
-                    selectionSupportsMultipleRanges = (sel.rangeCount == 2);
+                    selectionSupportsMultipleRanges = (sel.rangeCount === 2);
                     r2.detach();
                 }
 
@@ -172,15 +172,15 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                 r1.detach();
 
                 for (i = 0; i < originalSelectionRangeCount; ++i) {
-                    if (i == 0 && originalSelectionBackward) {
+                    if (i === 0 && originalSelectionBackward) {
                         if (addRangeBackwardToNative) {
                             addRangeBackwardToNative(sel, originalSelectionRanges[i]);
                         } else {
                             api.warn("Rangy initialization: original selection was backwards but selection has been restored forwards because browser does not support Selection.extend");
-                            sel.addRange(originalSelectionRanges[i])
+                            sel.addRange(originalSelectionRanges[i]);
                         }
                     } else {
-                        sel.addRange(originalSelectionRanges[i])
+                        sel.addRange(originalSelectionRanges[i]);
                     }
                 }
             }
@@ -251,7 +251,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     }
 
     function rangeContainsSingleElement(rangeNodes) {
-        if (!rangeNodes.length || rangeNodes[0].nodeType != 1) {
+        if (!rangeNodes.length || rangeNodes[0].nodeType !== 1) {
             return false;
         }
         for (var i = 1, len = rangeNodes.length; i < len; ++i) {
@@ -272,7 +272,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
 
     // Simple, quick test which only needs to distinguish between a TextRange and a ControlRange
     function isTextRange(range) {
-        return !!range && typeof range.text != "undefined";
+        return !!range && typeof range.text !== "undefined";
     }
 
     function updateFromTextRange(sel, range) {
@@ -288,7 +288,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     function updateControlSelection(sel) {
         // Update the wrapped selection based on what's now in the native selection
         sel._ranges.length = 0;
-        if (sel.docSelection.type == "None") {
+        if (sel.docSelection.type === "None") {
             updateEmptySelection(sel);
         } else {
             var controlRange = sel.docSelection.createRange();
@@ -305,7 +305,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                     range.selectNode(controlRange.item(i));
                     sel._ranges.push(range);
                 }
-                sel.isCollapsed = sel.rangeCount == 1 && sel._ranges[0].collapsed;
+                sel.isCollapsed = sel.rangeCount === 1 && sel._ranges[0].collapsed;
                 updateAnchorAndFocusFromRange(sel, sel._ranges[sel.rangeCount - 1], false);
             }
         }
@@ -385,10 +385,10 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
         while (i--) {
             cached = cachedRangySelections[i];
             sel = cached.selection;
-            if (action == "deleteAll") {
+            if (action === "deleteAll") {
                 deleteProperties(sel);
             } else if (cached.win == win) {
-                if (action == "delete") {
+                if (action === "delete") {
                     cachedRangySelections.splice(i, 1);
                     return true;
                 } else {
@@ -396,7 +396,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                 }
             }
         }
-        if (action == "deleteAll") {
+        if (action === "deleteAll") {
             cachedRangySelections.length = 0;
         }
         return null;
@@ -465,7 +465,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
 
         if (selectionHasRangeCount) {
             selProto.addRange = function(range, direction) {
-                if (implementsControlRange && implementsDocSelection && this.docSelection.type == CONTROL) {
+                if (implementsControlRange && implementsDocSelection && this.docSelection.type === CONTROL) {
                     addRangeToControlSelection(this, range);
                 } else {
                     if (isDirectionBackward(direction) && selectionHasExtend) {
@@ -486,7 +486,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                         // Check whether adding the range was successful
                         this.rangeCount = this.nativeSelection.rangeCount;
 
-                        if (this.rangeCount == previousRangeCount + 1) {
+                        if (this.rangeCount === previousRangeCount + 1) {
                             // The range was added successfully
 
                             // Check whether the range that we added to the selection is reflected in the last range extracted from
@@ -538,13 +538,13 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                 this.docSelection.empty();
 
                 // Check for empty() not working (issue #24)
-                if (this.docSelection.type != "None") {
+                if (this.docSelection.type !== "None") {
                     // Work around failure to empty a control selection by instead selecting a TextRange and then
                     // calling empty()
                     var doc;
                     if (this.anchorNode) {
                         doc = getDocument(this.anchorNode);
-                    } else if (this.docSelection.type == CONTROL) {
+                    } else if (this.docSelection.type === CONTROL) {
                         var controlRange = this.docSelection.createRange();
                         if (controlRange.length) {
                             doc = getDocument( controlRange.item(0) );
@@ -561,7 +561,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
         };
 
         selProto.addRange = function(range) {
-            if (this.docSelection.type == CONTROL) {
+            if (this.docSelection.type === CONTROL) {
                 addRangeToControlSelection(this, range);
             } else {
                 api.WrappedTextRange.rangeToTextRange(range).select();
@@ -608,7 +608,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
             }
             log.warn("selection refresh called, selection type: " + sel.docSelection.type);
 
-            if (sel.docSelection.type == CONTROL) {
+            if (sel.docSelection.type === CONTROL) {
                 updateControlSelection(sel);
             } else if (isTextRange(range)) {
                 updateFromTextRange(sel, range);
@@ -616,9 +616,9 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                 updateEmptySelection(sel);
             }
         };
-    } else if (isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount == NUMBER) {
+    } else if (isHostMethod(testSelection, "getRangeAt") && typeof testSelection.rangeCount === NUMBER) {
         refreshSelection = function(sel) {
-            if (implementsControlRange && implementsDocSelection && sel.docSelection.type == CONTROL) {
+            if (implementsControlRange && implementsDocSelection && sel.docSelection.type === CONTROL) {
                 updateControlSelection(sel);
             } else {
                 sel._ranges.length = sel.rangeCount = sel.nativeSelection.rangeCount;
@@ -633,7 +633,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
                 }
             }
         };
-    } else if (selectionHasAnchorAndFocus && typeof testSelection.isCollapsed == BOOLEAN && typeof testRange.collapsed == BOOLEAN && features.implementsDomRange) {
+    } else if (selectionHasAnchorAndFocus && typeof testSelection.isCollapsed === BOOLEAN && typeof testRange.collapsed === BOOLEAN && features.implementsDomRange) {
         refreshSelection = function(sel) {
             var range, nativeSel = sel.nativeSelection;
             if (nativeSel.anchorNode) {
@@ -659,14 +659,14 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
         if (checkForChanges) {
             // Check the range count first
             var i = oldRanges.length;
-            if (i != this._ranges.length) {
+            if (i !== this._ranges.length) {
                 log.debug("Selection.refresh: Range count has changed: was " + i + ", is now " + this._ranges.length);
                 return true;
             }
 
             // Now check the direction. Checking the anchor position is the same is enough since we're checking all the
             // ranges after this
-            if (this.anchorNode != oldAnchorNode || this.anchorOffset != oldAnchorOffset) {
+            if (this.anchorNode != oldAnchorNode || this.anchorOffset !== oldAnchorOffset) {
                 log.debug("Selection.refresh: anchor different, so selection has changed");
                 return true;
             }
@@ -698,7 +698,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
 
     if (implementsControlRange) {
         selProto.removeRange = function(range) {
-            if (this.docSelection.type == CONTROL) {
+            if (this.docSelection.type === CONTROL) {
                 var controlRange = this.docSelection.createRange();
                 var rangeElement = getSingleElementFromRange(range);
 
@@ -802,7 +802,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
 
     selProto.deleteFromDocument = function() {
         // Sepcial behaviour required for IE's control selections
-        if (implementsControlRange && implementsDocSelection && this.docSelection.type == CONTROL) {
+        if (implementsControlRange && implementsDocSelection && this.docSelection.type === CONTROL) {
             var controlRange = this.docSelection.createRange();
             var element;
             while (controlRange.length) {
@@ -887,7 +887,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
         });
 
         this.removeAllRanges();
-        if (backward && ranges.length == 1) {
+        if (backward && ranges.length === 1) {
             this.addRange(ranges[0], "backward");
         } else {
             this.setRanges(ranges);
@@ -929,9 +929,9 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
         var rangeInspects = [];
         var anchor = new DomPosition(sel.anchorNode, sel.anchorOffset);
         var focus = new DomPosition(sel.focusNode, sel.focusOffset);
-        var name = (typeof sel.getName == "function") ? sel.getName() : "Selection";
+        var name = (typeof sel.getName === "function") ? sel.getName() : "Selection";
 
-        if (typeof sel.rangeCount != "undefined") {
+        if (typeof sel.rangeCount !== "undefined") {
             for (var i = 0, len = sel.rangeCount; i < len; ++i) {
                 rangeInspects[i] = DomRange.inspect(sel.getRangeAt(i));
             }
@@ -965,7 +965,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     api.selectionPrototype = selProto;
 
     api.addCreateMissingNativeApiListener(function(win) {
-        if (typeof win.getSelection == "undefined") {
+        if (typeof win.getSelection === "undefined") {
             win.getSelection = function() {
                 return getSelection(win);
             };

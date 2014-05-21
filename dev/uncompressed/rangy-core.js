@@ -748,7 +748,9 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
 
     function isBrokenNode(node) {
         try {
+            /* jshint ignore:start */
             node.parentNode;
+            /* jshint ignore:end */
             return false;
         } catch (e) {
             return true;
@@ -939,7 +941,7 @@ rangy.createCoreModule("DomRange", ["DomUtil"], function(api, module) {
     // Utility functions
 
     function isNonTextPartiallySelected(node, range) {
-        return (node.nodeType != 3) &&
+        return (node.nodeType !== 3) &&
                (isOrIsAncestorOf(node, range.startContainer) || isOrIsAncestorOf(node, range.endContainer));
     }
 
@@ -3022,7 +3024,7 @@ rangy.createCoreModule("WrappedSelection", ["DomRange", "WrappedRange"], functio
     }
 
     function rangeContainsSingleElement(rangeNodes) {
-        if (!rangeNodes.length || rangeNodes[0].nodeType != 1) {
+        if (!rangeNodes.length || rangeNodes[0].nodeType !== 1) {
             return false;
         }
         for (var i = 1, len = rangeNodes.length; i < len; ++i) {
