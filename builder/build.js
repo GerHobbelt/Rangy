@@ -57,7 +57,7 @@ function copyFileSync(srcFile, destFile) {
 
 function deleteBuildDir() {
     // Delete the old build directory
-    if (path.existsSync(buildDir)) {
+    if (fs.existsSync(buildDir)) {
         var rimraf = require("rimraf");
         rimraf(buildDir, function() {
             console.log("Deleted old build directory");
@@ -76,12 +76,12 @@ function createBuildDir() {
     callback();
 }
 
-function checkoutSvnRepository() {
-    exec("svn checkout " + buildSpec.svnUrl, { cwd: svnDir }, function(error, stdout, stderr) {
-        console.log("Checked out SVN repository ", stdout, stderr);
-        callback();
-    });
-}
+// function checkoutSvnRepository() {
+//     exec("svn checkout " + buildSpec.svnUrl, { cwd: svnDir }, function(error, stdout, stderr) {
+//         console.log("Checked out SVN repository ", stdout, stderr);
+//         callback();
+//     });
+// }
 
 function getVersion() {
     // use the total count of commits as an svnversion equivalent, but also add the hash as a subversion to ensure we clearly identify the current checkout:
@@ -132,11 +132,11 @@ function copyModuleScripts() {
 
 function clean() {
     if (0) {
-        var rimraf = require("rimraf");
-        rimraf(svnDir, function() {
-            console.log("Deleted SVN directory");
-            callback();
-        });
+        // var rimraf = require("rimraf");
+        // rimraf(svnDir, function() {
+        //     console.log("Deleted SVN directory");
+        //     callback();
+        // });
     } else {
         callback();
     }
@@ -216,7 +216,7 @@ function lint() {
 
         var errors = jshint.JSHINT.errors;
         if (errors && errors.length) {
-            console.log("Found " + errors.length + " JSHint errors");
+            console.log("Found " + errors.length + " JSHint errors in file " + file);
             errors.forEach(function(error) {
                 if (error) {
                     console.log("%s at %d on line %d: %s\n%s", error.id, error.character, error.line, error.reason, error.evidence);
@@ -246,15 +246,11 @@ function minify() {
     function uglify(src, dest) {
         var licence = getLicence(src);
         var uglify = require("uglify-js");
-        var jsp = uglify.parser;
-        var pro = uglify.uglify;
 
         try {
-            var ast = jsp.parse(fs.readFileSync(src, FILE_ENCODING)); // parse code and get the initial AST
-            ast = pro.ast_mangle(ast); // get a new AST with mangled names
-            ast = pro.ast_squeeze(ast); // get an AST with compression optimizations
-            var final_code = pro.gen_code(ast, {
-                ascii_only: true
+            var final_code = uglify.minify(src, {
+                mangle: true,
+                ascii_only: true                
             });
 
             fs.writeFileSync(dest, licence + "\r\n" + final_code, FILE_ENCODING);
