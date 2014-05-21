@@ -431,6 +431,16 @@ xn.test.suite("Class Applier module tests", function(s) {
         t.assertFalse(applier.isAppliedToRange(range));
     });
 
+    s.test("Test issue 202 (undoToRanges)", function(t) {
+        var applier = rangy.createCssClassApplier("c1");
+
+        var testEl = document.getElementById("test");
+        testEl.innerHTML = '1<span class="c1">2</span>';
+        var range = rangy.createRange();
+        range.setStartAndEnd(testEl.firstChild, 1, testEl, 2);
+        applier.undoToRanges([range]);
+    });
+
     s.test("Test whitespace 1 (non-ignorable whitespace)", function(t) {
         var applier = rangy.createCssClassApplier("c1");
 
@@ -711,6 +721,30 @@ xn.test.suite("Class Applier module tests", function(s) {
         applier.applyToRange(range);
 
         t.assertEquals(elementDataTest, "foo");
+    });
+
+    s.test("removeEmptyContainers error (issue 188)", function(t) {
+        var applier = rangy.createCssClassApplier("test");
+        var testEl = document.getElementById("test");
+        testEl.innerHTML = '<span class="test"></span>';
+        var range = rangy.createRange();
+        range.selectNodeContents(testEl);
+        applier.applyToRange(range);
+    });
+
+    s.test("removeEmptyContainers error undoToRange (issue 188)", function(t) {
+        var applier = rangy.createCssClassApplier("test");
+        var testEl = document.getElementById("test");
+        testEl.innerHTML = '1<span class="test"></span><span class="test">2</span><span class="test"></span>3';
+        var range = rangy.createRange();
+        range.setStartAndEnd(testEl, 1, 4);
+        applier.undoToRange(range);
+        t.assertEquals(testEl.innerHTML, "123");
+        t.assertEquals(testEl.childNodes.length, 1);
+        t.assertEquals(range.startContainer, testEl.firstChild);
+        t.assertEquals(range.startOffset, 1);
+        t.assertEquals(range.endContainer, testEl.firstChild);
+        t.assertEquals(range.endOffset, 2);
     });
 
     if (rangy.features.selectionSupportsMultipleRanges) {
