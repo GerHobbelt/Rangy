@@ -4,3 +4,6 @@
 
 # node/NPM
 node_modules
+
+# builder/buils.js output
+build/
