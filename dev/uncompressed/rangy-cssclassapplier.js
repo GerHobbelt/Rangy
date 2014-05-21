@@ -9,7 +9,7 @@
  *
  * Copyright 2014, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.525.876bad6
+ * Version: 1.3alpha.530.d3d442d
  * Build date: 21 May 2014
  */
 rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
@@ -70,7 +70,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     function haveSameClasses(el1, el2) {
-        return getSortedClassName(el1) == getSortedClassName(el2);
+        return getSortedClassName(el1) === getSortedClassName(el2);
     }
 
     function movePosition(position, oldParent, oldIndex, newParent, newIndex) {
@@ -81,7 +81,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             ++newOffset;
         }
 
-        if (posNode == oldParent && (posOffset == oldIndex  || posOffset == oldIndex + 1)) {
+        if (posNode == oldParent && (posOffset === oldIndex || posOffset === oldIndex + 1)) {
             newNode = newParent;
             newOffset += newIndex - oldIndex;
         }
@@ -102,7 +102,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
     function movePreservingPositions(node, newParent, newIndex, positionsToPreserve) {
         // For convenience, allow newIndex to be -1 to mean "insert at the end".
-        if (newIndex == -1) {
+        if (newIndex === -1) {
             newIndex = newParent.childNodes.length;
         }
 
@@ -114,7 +114,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         }
 
         // Now actually move the node.
-        if (newParent.childNodes.length == newIndex) {
+        if (newParent.childNodes.length === newIndex) {
             newParent.appendChild(node);
         } else {
             newParent.insertBefore(node, newParent.childNodes[newIndex]);
@@ -157,7 +157,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         var text = intersectionRange ? intersectionRange.toString() : "";
         textNodeRange.detach();
 
-        return text != "";
+        return text !== "";
     }
 
     function getEffectiveTextNodes(range) {
@@ -181,14 +181,14 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     function elementsHaveSameNonClassAttributes(el1, el2) {
-        if (el1.attributes.length != el2.attributes.length) return false;
+        if (el1.attributes.length !== el2.attributes.length) return false;
         for (var i = 0, len = el1.attributes.length, attr1, attr2, name; i < len; ++i) {
             attr1 = el1.attributes[i];
             name = attr1.name;
-            if (name != "class") {
+            if (name !== "class") {
                 attr2 = el2.attributes.getNamedItem(name);
-                if ( (attr1 === null) != (attr2 === null) ) return false;
-                if (attr1.specified != attr2.specified) return false;
+                if ( (attr1 === null) !== (attr2 === null) ) return false;
+                if (attr1.specified !== attr2.specified) return false;
                 if (attr1.specified && attr1.nodeValue !== attr2.nodeValue) return false;
             }
         }
@@ -198,7 +198,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     function elementHasNonClassAttributes(el, exceptions) {
         for (var i = 0, len = el.attributes.length, attrName; i < len; ++i) {
             attrName = el.attributes[i].name;
-            if ( !(exceptions && contains(exceptions, attrName)) && el.attributes[i].specified && attrName != "class") {
+            if ( !(exceptions && contains(exceptions, attrName)) && el.attributes[i].specified && attrName !== "class") {
                 return true;
             }
         }
@@ -207,7 +207,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
     function elementHasProperties(el, props) {
         each(props, function(p, propValue) {
-            if (typeof propValue == "object") {
+            if (typeof propValue === "object") {
                 if (!elementHasProperties(el[p], propValue)) {
                     return false;
                 }
@@ -221,40 +221,40 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     var getComputedStyleProperty = dom.getComputedStyleProperty;
     var isEditableElement = (function() {
         var testEl = document.createElement("div");
-        return typeof testEl.isContentEditable == "boolean" ?
+        return typeof testEl.isContentEditable === "boolean" ?
             function (node) {
-                return node && node.nodeType == 1 && node.isContentEditable;
+                return node && node.nodeType === 1 && node.isContentEditable;
             } :
             function (node) {
-                if (!node || node.nodeType != 1 || node.contentEditable == "false") {
+                if (!node || node.nodeType !== 1 || node.contentEditable === "false") {
                     return false;
                 }
-                return node.contentEditable == "true" || isEditableElement(node.parentNode);
+                return node.contentEditable === "true" || isEditableElement(node.parentNode);
             };
     })();
 
     function isEditingHost(node) {
         var parent;
-        return node && node.nodeType == 1
-            && (( (parent = node.parentNode) && parent.nodeType == 9 && parent.designMode == "on")
+        return node && node.nodeType === 1
+            && (( (parent = node.parentNode) && parent.nodeType === 9 && parent.designMode === "on")
             || (isEditableElement(node) && !isEditableElement(node.parentNode)));
     }
 
     function isEditable(node) {
-        return (isEditableElement(node) || (node.nodeType != 1 && isEditableElement(node.parentNode))) && !isEditingHost(node);
+        return (isEditableElement(node) || (node.nodeType !== 1 && isEditableElement(node.parentNode))) && !isEditingHost(node);
     }
 
     var inlineDisplayRegex = /^inline(-block|-table)?$/i;
 
     function isNonInlineElement(node) {
-        return node && node.nodeType == 1 && !inlineDisplayRegex.test(getComputedStyleProperty(node, "display"));
+        return node && node.nodeType === 1 && !inlineDisplayRegex.test(getComputedStyleProperty(node, "display"));
     }
 
     // White space characters as defined by HTML 4 (http://www.w3.org/TR/html401/struct/text.html)
     var htmlNonWhiteSpaceRegex = /[^\r\n\t\f \u200B]/;
 
     function isUnrenderedWhiteSpaceNode(node) {
-        if (node.data.length == 0) {
+        if (node.data.length === 0) {
             return true;
         }
         if (htmlNonWhiteSpaceRegex.test(node.data)) {
@@ -299,9 +299,9 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
     function isSplitPoint(node, offset) {
         if (dom.isCharacterDataNode(node)) {
-            if (offset == 0) {
+            if (offset === 0) {
                 return !!node.previousSibling;
-            } else if (offset == node.length) {
+            } else if (offset === node.length) {
                 return !!node.nextSibling;
             } else {
                 return true;
@@ -313,7 +313,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
     function splitNodeAt(node, descendantNode, descendantOffset, positionsToPreserve) {
         var newNode, parentNode;
-        var splitAtStart = (descendantOffset == 0);
+        var splitAtStart = (descendantOffset === 0);
 
         if (dom.isAncestorOf(descendantNode, node)) {
             return node;
@@ -321,9 +321,9 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
         if (dom.isCharacterDataNode(descendantNode)) {
             var descendantIndex = dom.getNodeIndex(descendantNode);
-            if (descendantOffset == 0) {
+            if (descendantOffset === 0) {
                 descendantOffset = descendantIndex;
-            } else if (descendantOffset == descendantNode.length) {
+            } else if (descendantOffset === descendantNode.length) {
                 descendantOffset = descendantIndex + 1;
             } else {
                 throw module.createError("splitNodeAt() should not be called with offset in the middle of a data node ("
@@ -346,7 +346,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             }
             movePreservingPositions(newNode, parentNode, dom.getNodeIndex(descendantNode) + 1, positionsToPreserve);
             return (descendantNode == node) ? newNode : splitNodeAt(node, parentNode, dom.getNodeIndex(newNode), positionsToPreserve);
-        } else if (node != descendantNode) {
+        } else if (node !== descendantNode) {
             newNode = descendantNode.parentNode;
 
             // Work out a new split point in the parent node
@@ -361,11 +361,11 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
     }
 
     function areElementsMergeable(el1, el2) {
-        return el1.tagName == el2.tagName
+        return el1.tagName === el2.tagName
             && haveSameClasses(el1, el2)
             && elementsHaveSameNonClassAttributes(el1, el2)
-            && getComputedStyleProperty(el1, "display") == "inline"
-            && getComputedStyleProperty(el2, "display") == "inline";
+            && getComputedStyleProperty(el1, "display") === "inline"
+            && getComputedStyleProperty(el2, "display") === "inline";
     }
 
     function createAdjacentMergeableTextNodeGetter(forward) {
@@ -376,15 +376,15 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
             var adjacentNode = textNode[siblingPropName];
             if (adjacentNode) {
                 // Can merge if the node's previous/next sibling is a text node
-                if (adjacentNode && adjacentNode.nodeType == 3) {
+                if (adjacentNode && adjacentNode.nodeType === 3) {
                     return adjacentNode;
                 }
             } else if (checkParentElement) {
                 // Compare text node parent element with its sibling
                 adjacentNode = el[siblingPropName];
-                if (adjacentNode && adjacentNode.nodeType == 1 && areElementsMergeable(el, adjacentNode)) {
+                if (adjacentNode && adjacentNode.nodeType === 1 && areElementsMergeable(el, adjacentNode)) {
                     var adjacentNodeChild = adjacentNode[forward ? "firstChild" : "lastChild"];
-                    if (adjacentNodeChild && adjacentNodeChild.nodeType == 3) {
+                    if (adjacentNodeChild && adjacentNodeChild.nodeType === 3) {
                         return adjacentNodeChild;
                     }
                 }
@@ -398,7 +398,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
 
     function Merge(firstNode) {
-        this.isElementMerge = (firstNode.nodeType == 1);
+        this.isElementMerge = (firstNode.nodeType === 1);
         this.textNodes = [];
         var firstTextNode = this.isElementMerge ? firstNode.lastChild : firstNode;
         if (firstTextNode) {
@@ -431,7 +431,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                                 // Handle case where both text nodes precede the position within the same parent node
                                 if (position.node == parent && position.offset > firstTextNodeIndex) {
                                     --position.offset;
-                                    if (position.offset == firstTextNodeIndex + 1 && i < len - 1) {
+                                    if (position.offset === firstTextNodeIndex + 1 && i < len - 1) {
                                         position.node = firstTextNode;
                                         position.offset = combinedTextLength;
                                     }
@@ -477,7 +477,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         var elementPropertiesFromOptions = null, elementAttributes = {};
 
         // Initialize from options object
-        if (typeof options == "object" && options !== null) {
+        if (typeof options === "object" && options !== null) {
             tagNames = options.tagNames;
             elementPropertiesFromOptions = options.elementProperties;
             elementAttributes = options.elementAttributes;
@@ -493,7 +493,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         }
 
         // Backward compatibility: the second parameter can also be a Boolean indicating to normalize after unapplying
-        applier.normalize = (typeof normalize == "undefined") ? true : normalize;
+        applier.normalize = (typeof normalize === "undefined") ? true : normalize;
 
         // Initialize element properties and attribute exceptions
         applier.attrExceptions = [];
@@ -510,16 +510,16 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         // Initialize tag names
         applier.applyToAnyTagName = false;
         var type = typeof tagNames;
-        if (type == "string") {
-            if (tagNames == "*") {
+        if (type === "string") {
+            if (tagNames === "*") {
                 applier.applyToAnyTagName = true;
             } else {
                 applier.tagNames = trim(tagNames.toLowerCase()).split(/\s*,\s*/);
             }
-        } else if (type == "object" && typeof tagNames.length == "number") {
+        } else if (type === "object" && typeof tagNames.length === "number") {
             applier.tagNames = [];
             for (i = 0, len = tagNames.length; i < len; ++i) {
-                if (tagNames[i] == "*") {
+                if (tagNames[i] === "*") {
                     applier.applyToAnyTagName = true;
                 } else {
                     applier.tagNames.push(tagNames[i].toLowerCase());
@@ -550,7 +550,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
                     // Special case for class. The copied properties object has the applier's CSS class as well as its
                     // own to simplify checks when removing styling elements
-                    if (p == "className") {
+                    if (p === "className") {
                         addClass(el, propValue);
                         addClass(el, this.cssClass);
                         el[p] = sortClassName(el[p]);
@@ -560,7 +560,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                     }
 
                     // Special case for style
-                    else if (p == "style") {
+                    else if (p === "style") {
                         elStyle = elPropValue;
                         if (createCopy) {
                             elProps[p] = elPropsStyle = {};
@@ -601,7 +601,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         },
 
         hasClass: function(node) {
-            return node.nodeType == 1 &&
+            return node.nodeType === 1 &&
                 contains(this.tagNames, node.tagName.toLowerCase()) &&
                 hasClass(node, this.cssClass);
         },
@@ -622,7 +622,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
         // White space adjacent to an unwrappable node can be ignored for wrapping
         isIgnorableWhiteSpaceNode: function(node) {
-            return this.ignoreWhiteSpace && node && node.nodeType == 3 && isUnrenderedWhiteSpaceNode(node);
+            return this.ignoreWhiteSpace && node && node.nodeType === 3 && isUnrenderedWhiteSpaceNode(node);
         },
 
         // Normalizes nodes after applying a CSS class to a Range.
@@ -694,7 +694,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
         applyToTextNode: function(textNode, positionsToPreserve) {
             var parent = textNode.parentNode;
-            if (parent.childNodes.length == 1 &&
+            if (parent.childNodes.length === 1 &&
                     this.useExistingElements &&
                     contains(this.tagNames, parent.tagName.toLowerCase()) &&
                     elementHasProperties(parent, this.elementProperties)) {
@@ -708,8 +708,8 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         },
 
         isRemovable: function(el) {
-            return el.tagName.toLowerCase() == this.elementTagName
-                && getSortedClassName(el) == this.elementSortedClassName
+            return el.tagName.toLowerCase() === this.elementTagName
+                && getSortedClassName(el) === this.elementSortedClassName
                 && elementHasProperties(el, this.elementProperties)
                 && !elementHasNonClassAttributes(el, this.attrExceptions)
                 && this.isModifiable(el);
@@ -717,9 +717,9 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
         isEmptyContainer: function(el) {
             var childNodeCount = el.childNodes.length;
-            return el.nodeType == 1
+            return el.nodeType === 1
                 && this.isRemovable(el)
-                && (childNodeCount == 0 || (childNodeCount == 1 && this.isEmptyContainer(el.firstChild)));
+                && (childNodeCount === 0 || (childNodeCount === 1 && this.isEmptyContainer(el.firstChild)));
         },
         
         removeEmptyContainers: function(range) {
@@ -880,7 +880,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 */
 
         isAppliedToRange: function(range) {
-            if (range.collapsed || range.toString() == "") {
+            if (range.collapsed || range.toString() === "") {
                 return !!this.getSelfOrAncestorWithClass(range.commonAncestorContainer);
             } else {
                 var textNodes = range.getNodes( [3] );
@@ -897,7 +897,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
 
         isAppliedToRanges: function(ranges) {
             var i = ranges.length;
-            if (i == 0) {
+            if (i === 0) {
                 return false;
             }
             while (i--) {

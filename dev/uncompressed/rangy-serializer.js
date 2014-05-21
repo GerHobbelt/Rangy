@@ -10,7 +10,7 @@
  *
  * Copyright 2014, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.525.876bad6
+ * Version: 1.3alpha.530.d3d442d
  * Build date: 21 May 2014
  */
 rangy.createModule("Serializer", ["WrappedSelection"], function(api, module) {
