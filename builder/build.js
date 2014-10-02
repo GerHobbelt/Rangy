@@ -11,8 +11,8 @@ var FILE_ENCODING = "utf-8";
 
 var buildSpec = {
     baseVersion: "1.3.0-alpha",
-    gitUrl: "https://github.com/timdown/rangy.git",
-    gitBranch: "master"
+    gitUrl: "https://github.com/peitschie/rangy.git",
+    gitBranch: "perf-master"
 };
 
 var buildDir = "dist/";
@@ -106,7 +106,7 @@ function createBuildDir() {
 }
 
 function cloneGitRepository() {
-    var cloneCmd = "git clone " + buildSpec.gitUrl + " " + gitDir;
+    var cloneCmd = "git clone -b" + buildSpec.gitBranch + " " + buildSpec.gitUrl + " " + gitDir;
     console.log("Cloning Git repository: " + cloneCmd);
     exec(cloneCmd, function(error, stdout, stderr) {
         console.log("Cloned Git repository");
