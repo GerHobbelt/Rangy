@@ -20,5 +20,8 @@
     	"jshint": ">=2.5.1",
     	"rimraf": ">=2.2.8",
     	"wrench": ">=1.5.8"
+    },
+    "scripts": {
+    	"build": "node builder/build.js"
     }
 }

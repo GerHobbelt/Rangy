@@ -14,7 +14,7 @@ var buildSpec = {
 
 var buildDir = "build/";
 
-var svnDir = buildDir + "checkout/", srcDir = "src/js/";
+var svnDir = buildDir + "checkout/", distroDir = "dist/", srcDir = "src/js/";
 var zipDir;
 var uncompressedBuildDir;
 var coreFilename = "rangy-core.js";
@@ -71,7 +71,7 @@ function deleteBuildDir() {
 
 function createBuildDir() {
     fs.mkdirSync(buildDir);
-    //fs.mkdirSync(svnDir);
+    fs.mkdirSync(distroDir);
     console.log("Created build directory " + path.resolve(buildDir));
     callback();
 }
@@ -233,6 +233,15 @@ function lint() {
     callback();
 }
 
+function copyFilesToDistroDir() {
+    allScripts.forEach(function(fileName) {
+        copyFileSync(uncompressedBuildDir + fileName, distroDir + fileName);
+    });
+
+    console.log("Copied files to distro dir");
+    callback();
+}
+
 function minify() {
     var error = false;
 
@@ -308,6 +317,7 @@ var actions = [
     removeLoggingFromScripts,
     substituteBuildVars,
     lint,
+    copyFilesToDistroDir,
     minify,
     zip
 ];
