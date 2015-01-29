@@ -23,7 +23,7 @@
     // Utility functions
 
     function isNonTextPartiallySelected(node, range) {
-        return (node.nodeType != 3) &&
+        return (node.nodeType !== 3) &&
                (isOrIsAncestorOf(node, range.startContainer) || isOrIsAncestorOf(node, range.endContainer));
     }
 
@@ -40,12 +40,12 @@
     }
 
     function insertNodeAtPosition(node, n, o) {
-        var firstNodeInserted = node.nodeType == 11 ? node.firstChild : node;
+        var firstNodeInserted = node.nodeType === 11 ? node.firstChild : node;
         if (isCharacterDataNode(n)) {
-            if (o == n.length) {
+            if (o === n.length) {
                 dom.insertAfter(node, n);
             } else {
-                n.parentNode.insertBefore(node, o == 0 ? n : splitDataNode(n, o));
+                n.parentNode.insertBefore(node, o === 0 ? n : splitDataNode(n, o));
             }
         } else if (o >= n.childNodes.length) {
             n.appendChild(node);
@@ -81,7 +81,7 @@
                 subIterator.detach();
             }
 
-            if (node.nodeType == 10) { // DocumentType
+            if (node.nodeType === 10) { // DocumentType
                 throw new DOMException("HIERARCHY_REQUEST_ERR");
             }
             frag.appendChild(node);
@@ -148,7 +148,7 @@
             } else {
                 iterator.remove();
             }
-            if (node.nodeType == 10) { // DocumentType
+            if (node.nodeType === 10) { // DocumentType
                 throw new DOMException("HIERARCHY_REQUEST_ERR");
             }
             frag.appendChild(node);
@@ -174,12 +174,12 @@
             // Don't include a boundary container if it is a character data node and the range does not contain any
             // of its character data. See issue 190.
             var sc = range.startContainer;
-            if (node == sc && isCharacterDataNode(sc) && range.startOffset == sc.length) {
+            if (node == sc && isCharacterDataNode(sc) && range.startOffset === sc.length) {
                 return;
             }
 
             var ec = range.endContainer;
-            if (node == ec && isCharacterDataNode(ec) && range.endOffset == 0) {
+            if (node == ec && isCharacterDataNode(ec) && range.endOffset === 0) {
                 return;
             }
 
@@ -189,7 +189,7 @@
     }
 
     function inspect(range) {
-        var name = (typeof range.getName == "undefined") ? "Range" : range.getName();
+        var name = (typeof range.getName === "undefined") ? "Range" : range.getName();
         return "[" + name + "(" + dom.inspectNode(range.startContainer) + ":" + range.startOffset + ", " +
                 dom.inspectNode(range.endContainer) + ":" + range.endOffset + ")]";
     }
@@ -268,7 +268,7 @@
             if (isCharacterDataNode(current) && (current === this.sc || current === this.ec)) {
                 start = (current === this.sc) ? this.so : 0;
                 end = (current === this.ec) ? this.eo : current.length;
-                if (start != end) {
+                if (start !== end) {
                     current.deleteData(start, end - start);
                 }
             } else {
@@ -407,7 +407,7 @@
     var htmlParsingConforms = false;
     try {
         styleEl.innerHTML = "<b>x</b>";
-        htmlParsingConforms = (styleEl.firstChild.nodeType == 3); // Opera incorrectly creates an element node
+        htmlParsingConforms = (styleEl.firstChild.nodeType === 3); // Opera incorrectly creates an element node
     } catch (e) {
         // IE 6 and 7 throw
     }
@@ -436,7 +436,7 @@
             var el = null;
 
             // "Element: node"
-            if (node.nodeType == 1) {
+            if (node.nodeType === 1) {
                 el = node;
 
             // "Text, Comment: node's parentElement"
@@ -448,7 +448,7 @@
             // and element's local name is "html" and element's namespace is the HTML
             // namespace"
             if (el === null || (
-                el.nodeName == "HTML" &&
+                el.nodeName === "HTML" &&
                 dom.isHtmlNamespace(getDocument(el).documentElement) &&
                 dom.isHtmlNamespace(el)
             )) {
@@ -534,8 +534,8 @@
             assertSameDocumentOrFragment(this.startContainer, range.startContainer);
 
             var nodeA, offsetA, nodeB, offsetB;
-            var prefixA = (how == e2s || how == s2s) ? "start" : "end";
-            var prefixB = (how == s2e || how == s2s) ? "start" : "end";
+            var prefixA = (how === e2s || how === s2s) ? "start" : "end";
+            var prefixB = (how === s2e || how === s2s) ? "start" : "end";
             nodeA = this[prefixA + "Container"];
             offsetA = this[prefixA + "Offset"];
             nodeB = range[prefixB + "Container"];
@@ -635,13 +635,13 @@
             assertRangeValid(this);
             var sc = this.startContainer;
             if (sc === this.endContainer && isCharacterDataNode(sc)) {
-                return (sc.nodeType == 3 || sc.nodeType == 4) ? sc.data.slice(this.startOffset, this.endOffset) : "";
+                return (sc.nodeType === 3 || sc.nodeType === 4) ? sc.data.slice(this.startOffset, this.endOffset) : "";
             } else {
                 var textParts = [], iterator = new RangeIterator(this, true);
                 log.info("toString iterator: " + dom.inspectNode(iterator._first) + ", " + dom.inspectNode(iterator._last));
                 iterateSubtree(iterator, function(node) {
                     // Accept only text or CDATA nodes, not comments
-                    if (node.nodeType == 3 || node.nodeType == 4) {
+                    if (node.nodeType === 3 || node.nodeType === 4) {
                         textParts.push(node.data);
                     }
                 });
@@ -738,10 +738,10 @@
 
                 var intersectionRange = this.cloneRange();
                 log.info("intersection", this.inspect(), range.inspect(), startComparison, endComparison);
-                if (startComparison == -1) {
+                if (startComparison === -1) {
                     intersectionRange.setStart(range.startContainer, range.startOffset);
                 }
-                if (endComparison == 1) {
+                if (endComparison === 1) {
                     intersectionRange.setEnd(range.endContainer, range.endOffset);
                 }
                 return intersectionRange;
@@ -752,10 +752,10 @@
         union: function(range) {
             if (this.intersectsOrTouchesRange(range)) {
                 var unionRange = this.cloneRange();
-                if (comparePoints(range.startContainer, range.startOffset, this.startContainer, this.startOffset) == -1) {
+                if (comparePoints(range.startContainer, range.startOffset, this.startContainer, this.startOffset) === -1) {
                     unionRange.setStart(range.startContainer, range.startOffset);
                 }
-                if (comparePoints(range.endContainer, range.endOffset, this.endContainer, this.endOffset) == 1) {
+                if (comparePoints(range.endContainer, range.endOffset, this.endContainer, this.endOffset) === 1) {
                     unionRange.setEnd(range.endContainer, range.endOffset);
                 }
                 return unionRange;
@@ -768,7 +768,7 @@
             if (allowPartial) {
                 return this.intersectsNode(node, false);
             } else {
-                return this.compareNode(node) == n_i;
+                return this.compareNode(node) === n_i;
             }
         },
 
@@ -843,7 +843,7 @@
             var nextCharIndex, i, childNodes;
 
             while (!stop && (node = nodeStack.pop())) {
-                if (node.nodeType == 3) {
+                if (node.nodeType === 3) {
                     nextCharIndex = charIndex + node.length;
                     if (!foundStart && bookmark.start >= charIndex && bookmark.start <= nextCharIndex) {
                         this.setStart(node, bookmark.start - charIndex);
@@ -951,7 +951,7 @@
             if (node !== range.startContainer || offset !== range.startOffset) {
                 // Check the root containers of the range and the new boundary, and also check whether the new boundary
                 // is after the current end. In either case, collapse the range to the new position
-                if (getRootContainer(node) != getRootContainer(ec) || comparePoints(node, offset, ec, eo) == 1) {
+                if (getRootContainer(node) != getRootContainer(ec) || comparePoints(node, offset, ec, eo) === 1) {
                     ec = node;
                     eo = offset;
                 }
@@ -964,7 +964,7 @@
             if (node !== range.endContainer || offset !== range.endOffset) {
                 // Check the root containers of the range and the new boundary, and also check whether the new boundary
                 // is after the current end. In either case, collapse the range to the new position
-                if (getRootContainer(node) != getRootContainer(sc) || comparePoints(node, offset, sc, so) == -1) {
+                if (getRootContainer(node) != getRootContainer(sc) || comparePoints(node, offset, sc, so) === -1) {
                     sc = node;
                     so = offset;
                 }
@@ -1082,7 +1082,7 @@
 
                 var mergeForward = function(node) {
                     var sibling = node.nextSibling;
-                    if (sibling && sibling.nodeType == node.nodeType) {
+                    if (sibling && sibling.nodeType === node.nodeType) {
                         ec = node;
                         eo = node.length;
                         node.appendData(sibling.data);
@@ -1092,7 +1092,7 @@
 
                 var mergeBackward = function(node) {
                     var sibling = node.previousSibling;
-                    if (sibling && sibling.nodeType == node.nodeType) {
+                    if (sibling && sibling.nodeType === node.nodeType) {
                         sc = node;
                         var nodeLength = node.length;
                         so = sibling.length;
@@ -1103,7 +1103,7 @@
                             ec = sc;
                         } else if (ec == node.parentNode) {
                             var nodeIndex = getNodeIndex(node);
-                            if (eo == nodeIndex) {
+                            if (eo === nodeIndex) {
                                 ec = node;
                                 eo = nodeLength;
                             } else if (eo > nodeIndex) {
@@ -1116,7 +1116,7 @@
                 var normalizeStart = true;
 
                 if (isCharacterDataNode(ec)) {
-                    if (ec.length == eo) {
+                    if (ec.length === eo) {
                         mergeForward(ec);
                     }
                 } else {
@@ -1131,7 +1131,7 @@
 
                 if (normalizeStart) {
                     if (isCharacterDataNode(sc)) {
-                        if (so == 0) {
+                        if (so === 0) {
                             mergeBackward(sc);
                         }
                     } else {

@@ -46,15 +46,15 @@
     // http://peter.michaux.ca/articles/feature-detection-state-of-the-art-browser-scripting
     function isHostMethod(o, p) {
         var t = typeof o[p];
-        return t == FUNCTION || (!!(t == OBJECT && o[p])) || t == "unknown";
+        return t === FUNCTION || (!!(t === OBJECT && o[p])) || t === "unknown";
     }
 
     function isHostObject(o, p) {
-        return !!(typeof o[p] == OBJECT && o[p]);
+        return !!(typeof o[p] === OBJECT && o[p]);
     }
 
     function isHostProperty(o, p) {
-        return typeof o[p] != UNDEFINED;
+        return typeof o[p] !== UNDEFINED;
     }
 
     // Creates a convenience function to save verbose repeated calls to tests functions
@@ -151,7 +151,7 @@
                 if (props.hasOwnProperty(i)) {
                     o = obj[i];
                     p = props[i];
-                    if (deep && o !== null && typeof o == "object" && p !== null && typeof p == "object") {
+                    if (deep && o !== null && typeof o === "object" && p !== null && typeof p === "object") {
                         extend(o, p, true);
                     }
                     obj[i] = p;
@@ -190,7 +190,7 @@
             el.appendChild(document.createElement("span"));
             var slice = [].slice;
             try {
-                if (slice.call(el.childNodes, 0)[0].nodeType == 1) {
+                if (slice.call(el.childNodes, 0)[0].nodeType === 1) {
                     toArray = function(arrayLike) {
                         return slice.call(arrayLike, 0);
                     };
@@ -254,7 +254,7 @@
         }
 
         var body = getBody(document);
-        if (!body || body.nodeName.toLowerCase() != "body") {
+        if (!body || body.nodeName.toLowerCase() !== "body") {
             fail("No body element found");
             return;
         }
@@ -404,7 +404,7 @@
     api.createModule = function(name) {
         // Allow 2 or 3 arguments (second argument is an optional array of dependencies)
         var initFunc, dependencies;
-        if (arguments.length == 2) {
+        if (arguments.length === 2) {
             initFunc = arguments[1];
             dependencies = [];
         } else {
@@ -468,7 +468,7 @@
 
     if (isBrowser) {
         // Test whether the document has already been loaded and initialize immediately if so
-        if (document.readyState == "complete") {
+        if (document.readyState === "complete") {
             loadHandler();
         } else {
             if (isHostMethod(document, "addEventListener")) {

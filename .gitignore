@@ -5,8 +5,11 @@ dist
 *~
 *.bak
 
-# npm/node
+# node/NPM
 node_modules
+
+# builder/buils.js output
+build/
 
 # analyze_github script cache:
 __forks.info__/
