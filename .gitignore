@@ -1,3 +1,6 @@
+.idea
+dist
+
 # Editor backup files
 *~
 *.bak

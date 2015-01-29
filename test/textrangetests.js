@@ -375,6 +375,31 @@ xn.test.suite("Text Range module tests", function(s) {
         t.assertEquals(rangy.innerText(p), "One");
     });
 
+    s.test("innerText() with ignored characters", function(t) {
+        t.el.innerHTML = '123';
+        t.assertEquals(rangy.innerText(t.el, { ignoreCharacters: "1" }), "23");
+        t.assertEquals(rangy.innerText(t.el, { ignoreCharacters: "2" }), "13");
+        t.assertEquals(rangy.innerText(t.el, { ignoreCharacters: "3" }), "12");
+        t.assertEquals(rangy.innerText(t.el, { ignoreCharacters: "23" }), "1");
+        t.assertEquals(rangy.innerText(t.el, { ignoreCharacters: "123" }), "");
+        t.assertEquals(rangy.innerText(t.el, { ignoreCharacters: ["3"] }), "12");
+        t.assertEquals(rangy.innerText(t.el, { ignoreCharacters: ["2", "3"] }), "1");
+    });
+
+    s.test("innerText() with ignored space characters", function(t) {
+        t.el.innerHTML = '1&nbsp; 2';
+        t.assertEquals(rangy.innerText(t.el), "1\u00a0 2");
+        t.assertEquals(rangy.innerText(t.el, { ignoreCharacters: "\u00a0" }), "1 2");
+        t.assertEquals(rangy.innerText(t.el, { ignoreCharacters: " " }), "1\u00a02");
+        t.assertEquals(rangy.innerText(t.el, { ignoreCharacters: "\u00a0 " }), "12");
+    });
+
+    s.test("innerText() with ignored new line characters", function(t) {
+        t.el.innerHTML = '<p>1</p><p>2</p>';
+        t.assertEquals(rangy.innerText(t.el), "1\n2");
+        t.assertEquals(rangy.innerText(t.el, { ignoreCharacters: "\n" }), "12");
+    });
+
     s.test("range text() on collapsed range", function(t) {
         t.el.innerHTML = '12345';
         var textNode = t.el.firstChild;
@@ -1020,6 +1045,22 @@ xn.test.suite("Text Range module tests", function(s) {
 
         t.assert(range.findText("Two", options));
         testRangeBoundaries(t, range, textNode, 14, textNode, 17);
+    });
+
+    s.test("findText regex at end of scope", function(t) {
+        t.el.innerHTML = 'One Two three';
+        var textNode = t.el.firstChild;
+        var range = rangy.createRange();
+        range.collapseToPoint(textNode, 0);
+
+        var scopeRange = rangy.createRange();
+        scopeRange.selectNodeContents(t.el);
+        var options = {
+            withinRange: scopeRange
+        };
+
+        t.assert(range.findText(/three/, options));
+        testRangeBoundaries(t, range, textNode, 8, textNode, 13);
     });
 
     s.test("createWordIterator", function(t) {

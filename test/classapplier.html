@@ -3,29 +3,29 @@
 <html>
 <head>
     <title></title>
-    <script type="text/javascript" src="../lib/log4javascript.js"></script>
+    <script type="text/javascript" src="../external/log4javascript.js"></script>
     <script type="text/javascript">
         var appender = new log4javascript.InPageAppender();
         log4javascript.getRootLogger().addAppender(appender);
         var log = log4javascript.getRootLogger();
         log4javascript.setShowStackTraces(true);
     </script>
-    <script type="text/javascript" src="../src/js/core/core.js"></script>
-    <script type="text/javascript" src="../src/js/core/dom.js"></script>
-    <script type="text/javascript" src="../src/js/core/domrange.js"></script>
-    <script type="text/javascript" src="../src/js/core/wrappedrange.js"></script>
-    <script type="text/javascript" src="../src/js/core/wrappedselection.js"></script>
-    <script type="text/javascript" src="../src/js/modules/rangy-cssclassapplier.js"></script>
+    <script type="text/javascript" src="../src/core/core.js"></script>
+    <script type="text/javascript" src="../src/core/dom.js"></script>
+    <script type="text/javascript" src="../src/core/domrange.js"></script>
+    <script type="text/javascript" src="../src/core/wrappedrange.js"></script>
+    <script type="text/javascript" src="../src/core/wrappedselection.js"></script>
+    <script type="text/javascript" src="../src/modules/rangy-classapplier.js"></script>
     <script type="text/javascript">
 
         var highlightApplier, idApplier;
-        var cssClassMutator1, cssClassMutator2;
+        var classMutator1, classMutator2;
 
         rangy.addInitListener(function(rangy) {
-            cssClassMutator1 = rangy.createCssClassApplier("test1", true, "*");
-            cssClassMutator2 = rangy.createCssClassApplier("test2", true);
-            highlightApplier = rangy.createCssClassApplier("highlight", true);
-            idApplier = rangy.createCssClassApplier("id1", true);
+            classMutator1 = rangy.createClassApplier("test1", true, "*");
+            classMutator2 = rangy.createClassApplier("test2", true);
+            highlightApplier = rangy.createClassApplier("highlight", true);
+            idApplier = rangy.createClassApplier("id1", true);
         });
 
         function toggleHighlight() {
@@ -64,9 +64,9 @@
 <input type="button" value="Toggle highlight"
     onclick="toggleHighlight();">
 
-<input type="button" value="Toggle class 1" onmousedown="cssClassMutator1.toggleSelection(); return false;" class="unselectable">
-<input type="button" value="Toggle class 2" onmousedown="cssClassMutator2.toggleSelection(); return false;" class="unselectable">
-<input type="button" value="Detach class 2 applier" onmousedown="cssClassMutator2.detach(); return false;" class="unselectable">
+<input type="button" value="Toggle class 1" onmousedown="classMutator1.toggleSelection(); return false;" class="unselectable">
+<input type="button" value="Toggle class 2" onmousedown="classMutator2.toggleSelection(); return false;" class="unselectable">
+<input type="button" value="Detach class 2 applier" onmousedown="classMutator2.detach(); return false;" class="unselectable">
 
 <p>Zero</p>
 <p>One two</p>
