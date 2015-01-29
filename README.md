@@ -1,4 +1,4 @@
-rangy
+Rangy
 =====
 
 A cross-browser JavaScript range and selection library
