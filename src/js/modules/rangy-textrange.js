@@ -100,17 +100,17 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         body.appendChild(el);
         sel.collapse(p.lastChild, 2);
         sel.setStart(p.firstChild, 0);
-        trailingSpaceInBlockCollapses = ("" + sel).length == 1;
+        trailingSpaceInBlockCollapses = ("" + sel).length === 1;
 
         el.innerHTML = "1 <br>";
         sel.collapse(el, 2);
         sel.setStart(el.firstChild, 0);
-        trailingSpaceBeforeBrCollapses = ("" + sel).length == 1;
+        trailingSpaceBeforeBrCollapses = ("" + sel).length === 1;
 
         el.innerHTML = "1 <p>1</p>";
         sel.collapse(el, 2);
         sel.setStart(el.firstChild, 0);
-        trailingSpaceBeforeBlockCollapses = ("" + sel).length == 1;
+        trailingSpaceBeforeBlockCollapses = ("" + sel).length === 1;
 
         body.removeChild(el);
         sel.removeAllRanges();
@@ -268,7 +268,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         var table = document.createElement("table");
         var body = getBody(document);
         body.appendChild(table);
-        tableCssDisplayBlock = (getComputedStyleProperty(table, "display") == "block");
+        tableCssDisplayBlock = (getComputedStyleProperty(table, "display") === "block");
         body.removeChild(table);
     })();
 
@@ -291,7 +291,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     function getComputedDisplay(el, win) {
         var display = getComputedStyleProperty(el, "display", win);
         var tagName = el.tagName.toLowerCase();
-        return (display == "block"
+        return (display === "block"
             && tableCssDisplayBlock
             && defaultDisplayValueForTag.hasOwnProperty(tagName))
             ? defaultDisplayValueForTag[tagName] : display;
@@ -300,7 +300,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     function isHidden(node) {
         var ancestors = getAncestorsAndSelf(node);
         for (var i = 0, len = ancestors.length; i < len; ++i) {
-            if (ancestors[i].nodeType == 1 && getComputedDisplay(ancestors[i]) == "none") {
+            if (ancestors[i].nodeType === 1 && getComputedDisplay(ancestors[i]) === "none") {
                 return true;
             }
         }
@@ -310,9 +310,9 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
     function isVisibilityHiddenTextNode(textNode) {
         var el;
-        return textNode.nodeType == 3
+        return textNode.nodeType === 3
             && (el = textNode.parentNode)
-            && getComputedStyleProperty(el, "visibility") == "hidden";
+            && getComputedStyleProperty(el, "visibility") === "hidden";
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -323,8 +323,8 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     // Document, or a DocumentFragment."
     function isBlockNode(node) {
         return node
-            && ((node.nodeType == 1 && !/^(inline(-block|-table)?|none)$/.test(getComputedDisplay(node)))
-            || node.nodeType == 9 || node.nodeType == 11);
+            && ((node.nodeType === 1 && !/^(inline(-block|-table)?|none)$/.test(getComputedDisplay(node)))
+            || node.nodeType === 9 || node.nodeType === 11);
     }
 
     function getLastDescendantOrSelf(node) {
@@ -377,7 +377,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
             return node;
         }
         var parent = node.parentNode;
-        if (parent && parent.nodeType == 1) {
+        if (parent && parent.nodeType === 1) {
             return parent;
         }
         return null;
@@ -392,7 +392,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     // (0x0009), carriage returns (0x000D), and/or spaces (0x0020), and whose
     // parent is an Element whose resolved value for "white-space" is "pre-line"."
     function isWhitespaceNode(node) {
-        if (!node || node.nodeType != 3) {
+        if (!node || node.nodeType !== 3) {
             return false;
         }
         var text = node.data;
@@ -400,13 +400,13 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
             return true;
         }
         var parent = node.parentNode;
-        if (!parent || parent.nodeType != 1) {
+        if (!parent || parent.nodeType !== 1) {
             return false;
         }
         var computedWhiteSpace = getComputedStyleProperty(node.parentNode, "whiteSpace");
 
         return (/^[\t\n\r ]+$/.test(text) && /^(normal|nowrap)$/.test(computedWhiteSpace))
-            || (/^[\t\r ]+$/.test(text) && computedWhiteSpace == "pre-line");
+            || (/^[\t\r ]+$/.test(text) && computedWhiteSpace === "pre-line");
     }
 
     // Adpated from Aryeh's code.
@@ -442,8 +442,8 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     function isCollapsedNode(node) {
         var type = node.nodeType;
         //log.debug("isCollapsedNode", isHidden(node), /^(script|style)$/i.test(node.nodeName), isCollapsedWhitespaceNode(node));
-        return type == 7 /* PROCESSING_INSTRUCTION */
-            || type == 8 /* COMMENT */
+        return type === 7 /* PROCESSING_INSTRUCTION */
+            || type === 8 /* COMMENT */
             || isHidden(node)
             || /^(script|style)$/i.test(node.nodeName)
             || isVisibilityHiddenTextNode(node)
@@ -452,9 +452,9 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
     function isIgnoredNode(node, win) {
         var type = node.nodeType;
-        return type == 7 /* PROCESSING_INSTRUCTION */
-            || type == 8 /* COMMENT */
-            || (type == 1 && getComputedDisplay(node, win) == "none");
+        return type === 7 /* PROCESSING_INSTRUCTION */
+            || type === 8 /* COMMENT */
+            || (type === 1 && getComputedDisplay(node, win) === "none");
     }
 
     /*----------------------------------------------------------------------------------------------------------------*/
@@ -547,11 +547,11 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
             log.debug("getTextNodeInfo for " + textNode.data);
             var spaceRegex = null, collapseSpaces = false;
             var cssWhitespace = getComputedStyleProperty(textNode.parentNode, "whiteSpace");
-            var preLine = (cssWhitespace == "pre-line");
+            var preLine = (cssWhitespace === "pre-line");
             if (preLine) {
                 spaceRegex = spacesMinusLineBreaksRegex;
                 collapseSpaces = true;
-            } else if (cssWhitespace == "normal" || cssWhitespace == "nowrap") {
+            } else if (cssWhitespace === "normal" || cssWhitespace === "nowrap") {
                 spaceRegex = spacesRegex;
                 collapseSpaces = true;
             }
@@ -629,7 +629,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         }, "node"),
 
         getTrailingSpace: createCachingGetter("trailingSpace", function(el) {
-            if (el.tagName.toLowerCase() == "br") {
+            if (el.tagName.toLowerCase() === "br") {
                 return "";
             } else {
                 switch (this.getComputedDisplay()) {
@@ -637,7 +637,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                         var child = el.lastChild;
                         while (child) {
                             if (!isIgnoredNode(child)) {
-                                return (child.nodeType == 1) ? this.session.getNodeWrapper(child).getTrailingSpace() : "";
+                                return (child.nodeType === 1) ? this.session.getNodeWrapper(child).getTrailingSpace() : "";
                             }
                             child = child.previousSibling;
                         }
@@ -707,7 +707,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                 var visibleChar = "", charType = EMPTY;
                 var finalizedChar = false;
                 if (offset > 0) {
-                    if (node.nodeType == 3) {
+                    if (node.nodeType === 3) {
                         var text = node.data;
                         var textChar = text.charAt(offset - 1);
                         log.debug("Got char '" + textChar + "' in data '" + text + "'");
@@ -747,8 +747,8 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                         }
                     } else {
                         var nodePassed = node.childNodes[offset - 1];
-                        if (nodePassed && nodePassed.nodeType == 1 && !isCollapsedNode(nodePassed)) {
-                            if (nodePassed.tagName.toLowerCase() == "br") {
+                        if (nodePassed && nodePassed.nodeType === 1 && !isCollapsedNode(nodePassed)) {
+                            if (nodePassed.tagName.toLowerCase() === "br") {
                                 log.debug("Node is br");
                                 visibleChar = "\n";
                                 pos.isBr = true;
@@ -764,7 +764,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                         // element or text node. In that case, there is an implied line break between the two nodes.
                         if (!visibleChar) {
                             var nextNode = node.childNodes[offset];
-                            if (nextNode && nextNode.nodeType == 1 && !isCollapsedNode(nextNode)) {
+                            if (nextNode && nextNode.nodeType === 1 && !isCollapsedNode(nextNode)) {
                                 log.debug("Unresolved leading space for node " + dom.inspectNode(nextNode) + ". Will resolve this later if necessary.");
                                 pos.checkForLeadingSpace = true;
                             }
@@ -781,7 +781,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
         isDefinitelyNonEmpty: function() {
             var charType = this.characterType;
-            return charType == NON_SPACE || charType == UNCOLLAPSIBLE_SPACE;
+            return charType === NON_SPACE || charType === UNCOLLAPSIBLE_SPACE;
         },
 
         // Resolve leading and trailing spaces, which may involve prepopulating other positions
@@ -848,7 +848,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
             
             // We need to actually get the character
             var character = "";
-            var collapsible = (this.characterType == COLLAPSIBLE_SPACE);
+            var collapsible = (this.characterType === COLLAPSIBLE_SPACE);
             log.info("getCharacter initial character is '" + this.character + "'", collapsible ? "collapsible" : "");
             
             var nextPos, previousPos/* = this.getPrecedingUncollapsedPosition(characterOptions)*/;
@@ -866,13 +866,13 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
             // Disallow a collapsible space that is followed by a line break or is the last character
             if (collapsible) {
                 // Disallow a collapsible space that follows a trailing space or line break, or is the first character
-                if (this.character == " " &&
-                        (!getPreviousPos() || previousPos.isTrailingSpace || previousPos.character == "\n")) {
+                if (this.character === " " &&
+                        (!getPreviousPos() || previousPos.isTrailingSpace || previousPos.character === "\n")) {
                     log.info("Preceding character is a trailing space or non-existent or follows a line break and current possible character is a collapsible space, so space is collapsed");
                 }
                 // Allow a leading line break unless it follows a line break
-                else if (this.character == "\n" && this.isLeadingSpace) {
-                    if (getPreviousPos() && previousPos.character != "\n") {
+                else if (this.character === "\n" && this.isLeadingSpace) {
+                    if (getPreviousPos() && previousPos.character !== "\n") {
                         character = "\n";
                         log.info("Character is a leading line break and is being included");
                     } else {
@@ -884,21 +884,21 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                     if (nextPos) {
                         if (nextPos.isBr) {
                             this.type = TRAILING_SPACE_BEFORE_BR;
-                        } else if (nextPos.isTrailingSpace && nextPos.character == "\n") {
+                        } else if (nextPos.isTrailingSpace && nextPos.character === "\n") {
                             this.type = TRAILING_SPACE_IN_BLOCK;
-                        } else if (nextPos.isLeadingSpace && nextPos.character == "\n") {
+                        } else if (nextPos.isLeadingSpace && nextPos.character === "\n") {
                             this.type = TRAILING_SPACE_BEFORE_BLOCK;
                         }
                         
                         log.debug("nextPos.isLeadingSpace: " + nextPos.isLeadingSpace + ", this type: " + this.type);
                         if (nextPos.character === "\n") {
-                            if (this.type == TRAILING_SPACE_BEFORE_BR && !characterOptions.includeSpaceBeforeBr) {
+                            if (this.type === TRAILING_SPACE_BEFORE_BR && !characterOptions.includeSpaceBeforeBr) {
                                 log.debug("Character is a space which is followed by a br. Policy from options is to collapse.");
-                            } else if (this.type == TRAILING_SPACE_BEFORE_BLOCK && !characterOptions.includeSpaceBeforeBlock) {
+                            } else if (this.type === TRAILING_SPACE_BEFORE_BLOCK && !characterOptions.includeSpaceBeforeBlock) {
                                 log.debug("Character is a space which is followed by a block. Policy from options is to collapse.");
-                            } else if (this.type == TRAILING_SPACE_IN_BLOCK && nextPos.isTrailingSpace && !characterOptions.includeBlockContentTrailingSpace) {
+                            } else if (this.type === TRAILING_SPACE_IN_BLOCK && nextPos.isTrailingSpace && !characterOptions.includeBlockContentTrailingSpace) {
                                 log.debug("Character is a space which is the final character in a block. Policy from options is to collapse.");
-                            } else if (this.type == PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK && nextPos.type == NON_SPACE && !characterOptions.includePreLineTrailingSpace) {
+                            } else if (this.type === PRE_LINE_TRAILING_SPACE_BEFORE_LINE_BREAK && nextPos.type === NON_SPACE && !characterOptions.includePreLineTrailingSpace) {
                                 log.debug("Character is a space which is followed by a line break in a pre-line element. Policy from options is to collapse.");
                             } else if (this.character === "\n") {
                                 if (nextPos.isTrailingSpace) {
@@ -908,7 +908,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                                         log.debug("Trailing line break (type " + nextPos.type + ", characterType " + nextPos.characterType + ") following a br is excluded but br may be included.");
                                         nextPos.type = TRAILING_LINE_BREAK_AFTER_BR;
                                         
-                                        if (getPreviousPos() && previousPos.isLeadingSpace && previousPos.character == "\n") {
+                                        if (getPreviousPos() && previousPos.isLeadingSpace && previousPos.character === "\n") {
                                             log.debug("Trailing space following a br following a leading line break is excluded.");
                                             nextPos.character = "";
                                         } else {
@@ -977,7 +977,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                 return null;
             }
             var nextNode, nextOffset, child;
-            if (offset == nodeWrapper.getLength()) {
+            if (offset === nodeWrapper.getLength()) {
                 // Move onto the next node
                 nextNode = node.parentNode;
                 nextOffset = nextNode ? nodeWrapper.getNodeIndex() + 1 : 0;
@@ -1004,7 +1004,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
         previous: createCachingGetter("previous", function(pos) {
             var nodeWrapper = pos.nodeWrapper, node = pos.node, offset = pos.offset, session = nodeWrapper.session;
             var previousNode, previousOffset, child;
-            if (offset == 0) {
+            if (offset === 0) {
                 previousNode = node.parentNode;
                 previousOffset = previousNode ? nodeWrapper.getNodeIndex() : 0;
             } else {
@@ -1358,7 +1358,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
                 // If we're down to the last token, consume character chunks until we have a word or run out of
                 // characters to consume
-                while ( forwardTokensBuffer.length == 1 &&
+                while ( forwardTokensBuffer.length === 1 &&
                     !(lastToken = forwardTokensBuffer[0]).isWord &&
                     (forwardChars = consumeWord(true)).length > 0) {
 
@@ -1374,7 +1374,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
 
                 // If we're down to the last token, consume character chunks until we have a word or run out of
                 // characters to consume
-                while ( backwardTokensBuffer.length == 1 &&
+                while ( backwardTokensBuffer.length === 1 &&
                     !(lastToken = backwardTokensBuffer[0]).isWord &&
                     (backwardChars = consumeWord(false)).length > 0) {
 
@@ -1443,7 +1443,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                 // start of the contents of the block element). We get round this by advancing the position returned to
                 // the last possible equivalent visible position.
                 log.info("movePositionBy ended immediately after a leading space at " + newPos.inspect());
-                if (unit == WORD) {
+                if (unit === WORD) {
                     charIterator = createCharacterIterator(pos, false, null, characterOptions);
                     nextPos = charIterator.next();
                     charIterator.dispose();
@@ -1549,7 +1549,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                         insideRegexMatch = true;
                     }
                 }
-            } else if ( (matchStartIndex = text.indexOf(searchTerm)) != -1 ) {
+            } else if ( (matchStartIndex = text.indexOf(searchTerm)) !== -1 ) {
                 returnValue = handleMatch(matchStartIndex, matchStartIndex + searchTerm.length);
                 break;
             }
@@ -1594,7 +1594,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
          */
         return createEntryPointFunction(
             function(session, unit, count, moveOptions) {
-                if (typeof count == "undefined") {
+                if (typeof count === "undefined") {
                     count = unit;
                     unit = CHARACTER;
                 }
@@ -1667,7 +1667,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                 if (!unit) {
                     unit = CHARACTER;
                 }
-                if (unit == WORD) {
+                if (unit === WORD) {
                     var wordOptions = createWordOptions(expandOptions.wordOptions);
                     var startPos = session.getRangeBoundaryPosition(this, true);
                     var endPos = session.getRangeBoundaryPosition(this, false);
@@ -1739,7 +1739,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                     containerNode = getBody( this.getDocument() );
                 }
                 var parent = containerNode.parentNode, nodeIndex = dom.getNodeIndex(containerNode);
-                var rangeStartsBeforeNode = (dom.comparePoints(this.startContainer, this.endContainer, parent, nodeIndex) == -1);
+                var rangeStartsBeforeNode = (dom.comparePoints(this.startContainer, this.endContainer, parent, nodeIndex) === -1);
                 var rangeBetween = this.cloneRange();
                 var startIndex, endIndex;
                 if (rangeStartsBeforeNode) {
@@ -1782,7 +1782,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
     
                 // Examine and prepare the search term
                 var searchTerm = searchTermParam, isRegex = false;
-                if (typeof searchTerm == "string") {
+                if (typeof searchTerm === "string") {
                     if (!findOptions.caseSensitive) {
                         searchTerm = searchTerm.toLowerCase();
                     }
@@ -1905,7 +1905,7 @@ rangy.createModule("TextRange", ["WrappedSelection"], function(api, module) {
                 var ranges = this.getAllRanges(), rangeCount = ranges.length;
                 var rangeInfos = [];
     
-                var backward = rangeCount == 1 && this.isBackward();
+                var backward = rangeCount === 1 && this.isBackward();
     
                 for (var i = 0, len = ranges.length; i < len; ++i) {
                     rangeInfos[i] = {

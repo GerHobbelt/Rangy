@@ -88,3 +88,17 @@ Rangy is tested and works fully in the following browsers:
 Rangy may well work in many other browsers. 
 It uses no specific browser detection, only feature detection, so any browser that has a minimal Range and Selection implementation 
 will work to some degree. Also included are workarounds for some known flaws in older browsers such as Safari 2.
+
+
+
+How to build from source
+------------------------
+
+- Make ure you have NodeJS and NPM installed
+- run `npm install` to install all required packages
+- run `node builder/build.js` from the repository root directory
+
+The generated output (the build) is then available in the (automatically created) `build/` directory under its own subdirectory, e.g. `build/rangy-1.3alpha.525.876bad6/`
+
+
+(Note: to 'sync' the `dev/` directory with this, you'll have to copy the files over manually.)

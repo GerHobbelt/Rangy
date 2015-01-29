@@ -32,8 +32,8 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
             }
 
             function updateNativeRange(range, startContainer, startOffset, endContainer, endOffset) {
-                var startMoved = (range.startContainer !== startContainer || range.startOffset != startOffset);
-                var endMoved = (range.endContainer !== endContainer || range.endOffset != endOffset);
+                var startMoved = (range.startContainer !== startContainer || range.startOffset !== startOffset);
+                var endMoved = (range.endContainer !== endContainer || range.endOffset !== endOffset);
                 var nativeRangeDifferent = !range.equals(range.nativeRange);
 
                 // Always set both boundaries for the benefit of IE9 (see issue 35)
@@ -196,16 +196,16 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
             range2.setEnd(testTextNode, 4);
             range2.setStart(testTextNode, 2);
 
-            if (range.compareBoundaryPoints(range.START_TO_END, range2) == -1 &&
-                    range.compareBoundaryPoints(range.END_TO_START, range2) == 1) {
+            if (range.compareBoundaryPoints(range.START_TO_END, range2) === -1 &&
+                    range.compareBoundaryPoints(range.END_TO_START, range2) === 1) {
                 // This is the wrong way round, so correct for it
                 log.info("START_TO_END and END_TO_START wrong way round. Correcting in wrapper.");
 
                 rangeProto.compareBoundaryPoints = function(type, range) {
                     range = range.nativeRange || range;
-                    if (type == range.START_TO_END) {
+                    if (type === range.START_TO_END) {
                         type = range.END_TO_START;
-                    } else if (type == range.END_TO_START) {
+                    } else if (type === range.END_TO_START) {
                         type = range.START_TO_END;
                     }
                     return this.nativeRange.compareBoundaryPoints(type, range);
@@ -230,7 +230,7 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
             range.setEnd(textNode, 2);
             range.deleteContents();
 
-            if (textNode.data == "13") {
+            if (textNode.data === "13") {
                 // Behaviour is correct per DOM4 Range so wrap the browser's implementation of deleteContents() and
                 // extractContents()
                 rangeProto.deleteContents = function() {
@@ -309,7 +309,7 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
         };
 
         var textRangeIsCollapsed = function(textRange) {
-            return textRange.compareEndPoints("StartToEnd", textRange) == 0;
+            return textRange.compareEndPoints("StartToEnd", textRange) === 0;
         };
 
         // Gets the boundary of a TextRange expressed as a node and an offset within that node. This function started out as
@@ -363,24 +363,24 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
 
             while (true) {
                 log.debug("nodeIndex is " + nodeIndex + ", start: " + start + ", end: " + end);
-                if (nodeIndex == childNodeCount) {
+                if (nodeIndex === childNodeCount) {
                     containerElement.appendChild(workingNode);
                 } else {
                     containerElement.insertBefore(workingNode, containerElement.childNodes[nodeIndex]);
                 }
                 workingRange.moveToElementText(workingNode);
                 comparison = workingRange.compareEndPoints(workingComparisonType, textRange);
-                if (comparison == 0 || start == end) {
+                if (comparison === 0 || start === end) {
                     break;
-                } else if (comparison == -1) {
-                    if (end == start + 1) {
+                } else if (comparison === -1) {
+                    if (end === start + 1) {
                         // We know the endth child node is after the range boundary, so we must be done.
                         break;
                     } else {
                         start = nodeIndex;
                     }
                 } else {
-                    end = (end == start + 1) ? start : nodeIndex;
+                    end = (end === start + 1) ? start : nodeIndex;
                 }
                 nodeIndex = Math.floor((start + end) / 2);
                 containerElement.removeChild(workingNode);
@@ -392,7 +392,7 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
             // so have identified the node we want
             boundaryNode = workingNode.nextSibling;
 
-            if (comparison == -1 && boundaryNode && isCharacterDataNode(boundaryNode)) {
+            if (comparison === -1 && boundaryNode && isCharacterDataNode(boundaryNode)) {
                 // This is a character data node (text, comment, cdata). The working range is collapsed at the start of the
                 // node containing the text range's boundary, so we move the end of the working range to the boundary point
                 // and measure the length of its text to get the boundary's offset within the node.
@@ -436,7 +436,7 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
                     var rangeLength = tempRange.text.replace(/\r\n/g, "\r").length;
 
                     offset = tempRange.moveStart("character", rangeLength);
-                    while ( (comparison = tempRange.compareEndPoints("StartToEnd", tempRange)) == -1) {
+                    while ( (comparison = tempRange.compareEndPoints("StartToEnd", tempRange)) === -1) {
                         offset++;
                         tempRange.moveStart("character", 1);
                     }
@@ -585,7 +585,7 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
         if (!api.features.implementsDomRange || api.config.preferTextRange) {
             // Add WrappedTextRange as the Range property of the global object to allow expression like Range.END_TO_END to work
             var globalObj = (function() { return this; })();
-            if (typeof globalObj.Range == "undefined") {
+            if (typeof globalObj.Range === "undefined") {
                 globalObj.Range = WrappedTextRange;
             }
 
@@ -620,7 +620,7 @@ rangy.createCoreModule("WrappedRange", ["DomRange"], function(api, module) {
 
     api.addCreateMissingNativeApiListener(function(win) {
         var doc = win.document;
-        if (typeof doc.createRange == "undefined") {
+        if (typeof doc.createRange === "undefined") {
             doc.createRange = function() {
                 return api.createRange(doc);
             };

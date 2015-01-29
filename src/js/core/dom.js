@@ -53,12 +53,12 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
     // Opera 11 puts HTML elements in the null namespace, it seems, and IE 7 has undefined namespaceURI
     function isHtmlNamespace(node) {
         var ns;
-        return typeof node.namespaceURI == UNDEF || ((ns = node.namespaceURI) === null || ns == "http://www.w3.org/1999/xhtml");
+        return typeof node.namespaceURI === UNDEF || ((ns = node.namespaceURI) === null || ns === "http://www.w3.org/1999/xhtml");
     }
 
     function parentElement(node) {
         var parent = node.parentNode;
-        return (parent.nodeType == 1) ? parent : null;
+        return (parent.nodeType === 1) ? parent : null;
     }
 
     function getNodeIndex(node) {
@@ -127,7 +127,7 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
 
     function isCharacterDataNode(node) {
         var t = node.nodeType;
-        return t == 3 || t == 4 || t == 8 ; // Text, CDataSection or Comment
+        return t === 3 || t === 4 || t === 8 ; // Text, CDataSection or Comment
     }
 
     function isTextOrCommentNode(node) {
@@ -135,7 +135,7 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
             return false;
         }
         var t = node.nodeType;
-        return t == 3 || t == 8 ; // Text or Comment
+        return t === 3 || t === 8 ; // Text or Comment
     }
 
     function insertAfter(node, precedingNode) {
@@ -174,11 +174,11 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
     }
 
     function getDocument(node) {
-        if (node.nodeType == 9) {
+        if (node.nodeType === 9) {
             return node;
-        } else if (typeof node.ownerDocument != UNDEF) {
+        } else if (typeof node.ownerDocument !== UNDEF) {
             return node.ownerDocument;
-        } else if (typeof node.document != UNDEF) {
+        } else if (typeof node.document !== UNDEF) {
             return node.document;
         } else if (node.parentNode) {
             return getDocument(node.parentNode);
@@ -189,9 +189,9 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
 
     function getWindow(node) {
         var doc = getDocument(node);
-        if (typeof doc.defaultView != UNDEF) {
+        if (typeof doc.defaultView !== UNDEF) {
             return doc.defaultView;
-        } else if (typeof doc.parentWindow != UNDEF) {
+        } else if (typeof doc.parentWindow !== UNDEF) {
             return doc.parentWindow;
         } else {
             throw module.createError("Cannot get a window object for node");
@@ -199,9 +199,9 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
     }
 
     function getIframeDocument(iframeEl) {
-        if (typeof iframeEl.contentDocument != UNDEF) {
+        if (typeof iframeEl.contentDocument !== UNDEF) {
             return iframeEl.contentDocument;
-        } else if (typeof iframeEl.contentWindow != UNDEF) {
+        } else if (typeof iframeEl.contentWindow !== UNDEF) {
             return iframeEl.contentWindow.document;
         } else {
             throw module.createError("getIframeDocument: No Document object found for iframe element");
@@ -209,9 +209,9 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
     }
 
     function getIframeWindow(iframeEl) {
-        if (typeof iframeEl.contentWindow != UNDEF) {
+        if (typeof iframeEl.contentWindow !== UNDEF) {
             return iframeEl.contentWindow;
-        } else if (typeof iframeEl.contentDocument != UNDEF) {
+        } else if (typeof iframeEl.contentDocument !== UNDEF) {
             return iframeEl.contentDocument.defaultView;
         } else {
             throw module.createError("getIframeWindow: No Window object found for iframe element");
@@ -232,7 +232,7 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
 
         // Test if a DOM node has been passed and obtain a document object for it if so
         else if (util.isHostProperty(obj, "nodeType")) {
-            doc = (obj.nodeType == 1 && obj.tagName.toLowerCase() == "iframe")
+            doc = (obj.nodeType === 1 && obj.tagName.toLowerCase() === "iframe")
                 ? getIframeDocument(obj) : getDocument(obj);
         }
 
@@ -307,7 +307,9 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
 
     function isBrokenNode(node) {
         try {
+            /* jshint ignore:start */
             node.parentNode;
+            /* jshint ignore:end */
             return false;
         } catch (e) {
             return true;
@@ -336,7 +338,7 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
         if (isCharacterDataNode(node)) {
             return '"' + node.data + '"';
         }
-        if (node.nodeType == 1) {
+        if (node.nodeType === 1) {
             var idAttr = node.id ? ' id="' + node.id + '"' : "";
             return "<" + node.nodeName + idAttr + ">[index:" + getNodeIndex(node) + ",length:" + node.childNodes.length + "][" + (node.innerHTML || "[innerHTML not supported]").slice(0, 25) + "]";
         }
@@ -352,11 +354,11 @@ rangy.createCoreModule("DomUtil", [], function(api, module) {
     }
 
     var getComputedStyleProperty;
-    if (typeof window.getComputedStyle != UNDEF) {
+    if (typeof window.getComputedStyle !== UNDEF) {
         getComputedStyleProperty = function(el, propName) {
             return getWindow(el).getComputedStyle(el, null)[propName];
         };
-    } else if (typeof document.documentElement.currentStyle != UNDEF) {
+    } else if (typeof document.documentElement.currentStyle !== UNDEF) {
         getComputedStyleProperty = function(el, propName) {
             return el.currentStyle[propName];
         };

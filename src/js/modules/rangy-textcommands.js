@@ -54,7 +54,7 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
     }
 
     function hasSameClasses(el1, el2) {
-        return getSortedClassName(el1) == getSortedClassName(el2);
+        return getSortedClassName(el1) === getSortedClassName(el2);
     }
 
     function replaceWithOwnChildren(el) {
@@ -69,8 +69,8 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
     function normalize(node) {
         var child = node.firstChild, nextChild;
         while (child) {
-            if (child.nodeType == 3) {
-                while ((nextChild = child.nextSibling) && nextChild.nodeType == 3) {
+            if (child..nodeType === 3) {
+                while ((nextChild = child.nextSibling) && nextChild..nodeType === 3) {
                     child.appendData(nextChild.data);
                     node.removeChild(nextChild);
                 }
@@ -83,13 +83,13 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
 */
 
     function elementsHaveSameNonClassAttributes(el1, el2) {
-        if (el1.attributes.length != el2.attributes.length) return false;
+        if (el1.attributes.length !== el2.attributes.length) return false;
         for (var i = 0, len = el1.attributes.length, attr1, attr2, name; i < len; ++i) {
             attr1 = el1.attributes[i];
             name = attr1.name;
-            if (name != "class") {
+            if (name !== "class") {
                 attr2 = el2.attributes.getNamedItem(name);
-                if (attr1.specified != attr2.specified) return false;
+                if (attr1.specified !== attr2.specified) return false;
                 if (attr1.specified && attr1.nodeValue !== attr2.nodeValue) return false;
             }
         }
@@ -98,7 +98,7 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
 
     function elementHasNonClassAttributes(el) {
         for (var i = 0, len = el.attributes.length; i < len; ++i) {
-            if (el.attributes[i].specified && el.attributes[i].name != "class") {
+            if (el.attributes[i].specified && el.attributes[i].name !== "class") {
                 return true;
             }
         }
@@ -107,9 +107,9 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
 
     function isSplitPoint(node, offset) {
         if (dom.isCharacterDataNode(node)) {
-            if (offset == 0) {
+            if (offset === 0) {
                 return !!node.previousSibling;
-            } else if (offset == node.length) {
+            } else if (offset === node.length) {
                 return !!node.nextSibling;
             } else {
                 return true;
@@ -123,10 +123,10 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
         log.debug("splitNodeAt", dom.inspectNode(node), dom.inspectNode(descendantNode), descendantOffset);
         var newNode;
         if (dom.isCharacterDataNode(descendantNode)) {
-            if (descendantOffset == 0) {
+            if (descendantOffset === 0) {
                 descendantOffset = dom.getNodeIndex(descendantNode);
                 descendantNode = descendantNode.parentNode;
-            } else if (descendantOffset == descendantNode.length) {
+            } else if (descendantOffset === descendantNode.length) {
                 descendantOffset = dom.getNodeIndex(descendantNode) + 1;
                 descendantNode = descendantNode.parentNode;
             } else {
@@ -149,18 +149,18 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
     }
 
     function areElementsMergeable(el1, el2) {
-        return el1.tagName == el2.tagName && hasSameClasses(el1, el2) && elementsHaveSameNonClassAttributes(el1, el2);
+        return el1.tagName === el2.tagName && hasSameClasses(el1, el2) && elementsHaveSameNonClassAttributes(el1, el2);
     }
 
     function getAdjacentMergeableTextNode(node, forward) {
-        var isTextNode = (node.nodeType == 3);
+        var isTextNode = (node.nodeType === 3);
         var el = isTextNode ? node.parentNode : node;
         var adjacentNode;
         var propName = forward ? "nextSibling" : "previousSibling";
         if (isTextNode) {
             // Can merge if the node's previous/next sibling is a text node
             adjacentNode = node[propName];
-            if (adjacentNode && adjacentNode.nodeType == 3) {
+            if (adjacentNode && adjacentNode.nodeType === 3) {
                 return adjacentNode;
             }
         } else {
@@ -174,7 +174,7 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
     }
 
     function Merge(firstNode) {
-        this.isElementMerge = (firstNode.nodeType == 1);
+        this.isElementMerge = (firstNode..nodeType === 1);
         this.firstTextNode = this.isElementMerge ? firstNode.lastChild : firstNode;
         if (this.isElementMerge) {
             this.sortedCssClasses = getSortedClassName(firstNode);
@@ -219,7 +219,7 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
 
     function TextCommand(name, options) {
         this.name = name;
-        if (typeof options == "object") {
+        if (typeof options === "object") {
             for (var i in options) {
                 if (options.hasOwnProperty(i)) {
                     this[i] = options[i];
@@ -298,7 +298,7 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
         getAppliedAncestor: function(textNode) {
             var node = textNode.parentNode;
             while (node) {
-                if (node.nodeType == 1 && dom.arrayContains(this.tagNames, node.tagName.toLowerCase()) && this.isAppliedToElement(node)) {
+                if (node..nodeType === 1 && dom.arrayContains(this.tagNames, node.tagName.toLowerCase()) && this.isAppliedToElement(node)) {
                     return node;
                 }
                 node = node.parentNode;
@@ -320,7 +320,7 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
 
         applyToTextNode: function(textNode) {
             var parent = textNode.parentNode;
-            if (parent.childNodes.length == 1 && dom.arrayContains(this.tagNames, parent.tagName.toLowerCase())) {
+            if (parent.childNodes.length === 1 && dom.arrayContains(this.tagNames, parent.tagName.toLowerCase())) {
                 this.applyToElement(parent);
             } else {
                 var el = this.createContainer(dom.getDocument(textNode));
@@ -332,7 +332,7 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
         },
 
         isRemovable: function(el) {
-            return el.tagName.toLowerCase() == tagName && trim(el.className) == this.cssClass && !elementHasNonClassAttributes(el);
+            return el.tagName.toLowerCase() === tagName && trim(el.className) === this.cssClass && !elementHasNonClassAttributes(el);
         },
 
         undoToTextNode: function(textNode, range, appliedAncestor) {
@@ -456,7 +456,7 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
             for (var i = 0, len = textNodes.length, selectedText; i < len; ++i) {
                 selectedText = this.getTextSelectedByRange(textNodes[i], range);
                 log.debug("text node: '" + textNodes[i].data + "', selectedText: '" + selectedText + "'", this.isAppliedToElement(textNodes[i].parentNode));
-                if (selectedText != "" && !this.isAppliedToElement(textNodes[i].parentNode)) {
+                if (selectedText !== "" && !this.isAppliedToElement(textNodes[i].parentNode)) {
                     return false;
                 }
             }
@@ -494,13 +494,13 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
         },
 
         execSelection: function(win, value, options) {
-            if (this.type == BOOLEAN) {
+            if (this.type === BOOLEAN) {
                 this.toggleSelection(win);
             }
         },
 
         querySelectionValue: function(win) {
-            if (this.type == BOOLEAN) {
+            if (this.type === BOOLEAN) {
                 return this.isAppliedToSelection(win);
             }
         }
@@ -532,11 +532,11 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
     // Register core commands
 
     var getComputedStyleProperty;
-    if (typeof window.getComputedStyle != UNDEF) {
+    if (typeof window.getComputedStyle !== UNDEF) {
         getComputedStyleProperty = function(el, propName) {
             return dom.getWindow(el).getComputedStyle(el, null)[propName];
         };
-    } else if (typeof dom.getBody(document).currentStyle != UNDEF) {
+    } else if (typeof dom.getBody(document).currentStyle !== UNDEF) {
         getComputedStyleProperty = function(el, propName) {
             return el.currentStyle[propName];
         };
@@ -551,9 +551,9 @@ rangy.createModule("TextCommands", ["WrappedSelection"], function(api, module) {
         isAppliedToElement: function(el) {
             var fontWeight = getComputedStyleProperty(el, "fontWeight");
             var isBold = false;
-            if (fontWeight == "bold" || fontWeight == "bolder") {
+            if (fontWeight === "bold" || fontWeight === "bolder") {
                 isBold = true;
-            } else if (fontWeight == "normal" || fontWeight == "lighter") {
+            } else if (fontWeight === "normal" || fontWeight === "lighter") {
                 isBold = false;
             } else {
                 var weightNum = parseInt("" + fontWeight);

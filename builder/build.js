@@ -14,7 +14,7 @@ var buildSpec = {
 
 var buildDir = "build/";
 
-var svnDir = buildDir + "checkout/", srcDir = svnDir + "js/";
+var svnDir = buildDir + "checkout/", distroDir = "dist/", srcDir = "src/js/";
 var zipDir;
 var uncompressedBuildDir;
 var coreFilename = "rangy-core.js";
@@ -57,7 +57,7 @@ function copyFileSync(srcFile, destFile) {
 
 function deleteBuildDir() {
     // Delete the old build directory
-    if (path.existsSync(buildDir)) {
+    if (fs.existsSync(buildDir)) {
         var rimraf = require("rimraf");
         rimraf(buildDir, function() {
             console.log("Deleted old build directory");
@@ -71,27 +71,33 @@ function deleteBuildDir() {
 
 function createBuildDir() {
     fs.mkdirSync(buildDir);
-    fs.mkdirSync(svnDir);
+    fs.mkdirSync(distroDir);
     console.log("Created build directory " + path.resolve(buildDir));
     callback();
 }
 
-function checkoutSvnRepository() {
-    exec("svn checkout " + buildSpec.svnUrl, { cwd: svnDir }, function(error, stdout, stderr) {
-        console.log("Checked out SVN repository ", stdout, stderr);
-        callback();
-    });
-}
+// function checkoutSvnRepository() {
+//     exec("svn checkout " + buildSpec.svnUrl, { cwd: svnDir }, function(error, stdout, stderr) {
+//         console.log("Checked out SVN repository ", stdout, stderr);
+//         callback();
+//     });
+// }
 
 function getVersion() {
-    exec("svnversion", function(error, stdout, stderr) {
-        buildVersion = buildSpec.baseVersion + "." + stdout.trim().replace(/:/g, "_");
-        zipDir = buildDir + "rangy-" + buildVersion + "/";
-        fs.mkdirSync(zipDir);
-        uncompressedBuildDir = zipDir + "uncompressed/";
-        fs.mkdirSync(uncompressedBuildDir);
-        console.log("Got SVN version ", stdout, stderr);
-        callback();
+    // use the total count of commits as an svnversion equivalent, but also add the hash as a subversion to ensure we clearly identify the current checkout:
+    //
+    // Note: an alternative might have been using `git describe --always` but the output of that one is a bit arbitrary and these we can predict very well. 
+    exec("git rev-list HEAD --count", function(error, stdout, stderr) {
+        var count = stdout.trim();
+        exec("git log -n 1", function(error, stdout, stderr) {
+            buildVersion = buildSpec.baseVersion + "." + count + "." + stdout.replace(/(\r\n|\n|\r)/gm," ").trim().replace(/^.*commit ([a-f0-9]+).*$/g, "$1").substr(0, 7);
+            zipDir = buildDir + "rangy-" + buildVersion + "/";
+            fs.mkdirSync(zipDir);
+            uncompressedBuildDir = zipDir + "uncompressed/";
+            fs.mkdirSync(uncompressedBuildDir);
+            console.log("Got SVN version ", stdout, stderr);
+            callback();
+        });
     });
 }
 
@@ -125,11 +131,15 @@ function copyModuleScripts() {
 }
 
 function clean() {
-    var rimraf = require("rimraf");
-    rimraf(svnDir, function() {
-        console.log("Deleted SVN directory");
+    if (0) {
+        // var rimraf = require("rimraf");
+        // rimraf(svnDir, function() {
+        //     console.log("Deleted SVN directory");
+        //     callback();
+        // });
+    } else {
         callback();
-    });
+    }
 }
 
 function removeLoggingFromScripts() {
@@ -206,7 +216,7 @@ function lint() {
 
         var errors = jshint.JSHINT.errors;
         if (errors && errors.length) {
-            console.log("Found " + errors.length + " JSHint errors");
+            console.log("Found " + errors.length + " JSHint errors in file " + file);
             errors.forEach(function(error) {
                 if (error) {
                     console.log("%s at %d on line %d: %s\n%s", error.id, error.character, error.line, error.reason, error.evidence);
@@ -223,6 +233,15 @@ function lint() {
     callback();
 }
 
+function copyFilesToDistroDir() {
+    allScripts.forEach(function(fileName) {
+        copyFileSync(uncompressedBuildDir + fileName, distroDir + fileName);
+    });
+
+    console.log("Copied files to distro dir");
+    callback();
+}
+
 function minify() {
     var error = false;
 
@@ -236,15 +255,11 @@ function minify() {
     function uglify(src, dest) {
         var licence = getLicence(src);
         var uglify = require("uglify-js");
-        var jsp = uglify.parser;
-        var pro = uglify.uglify;
 
         try {
-            var ast = jsp.parse(fs.readFileSync(src, FILE_ENCODING)); // parse code and get the initial AST
-            ast = pro.ast_mangle(ast); // get a new AST with mangled names
-            ast = pro.ast_squeeze(ast); // get an AST with compression optimizations
-            var final_code = pro.gen_code(ast, {
-                ascii_only: true
+            var final_code = uglify.minify(src, {
+                mangle: true,
+                ascii_only: true                
             });
 
             fs.writeFileSync(dest, licence + "\r\n" + final_code, FILE_ENCODING);
@@ -302,6 +317,7 @@ var actions = [
     removeLoggingFromScripts,
     substituteBuildVars,
     lint,
+    copyFilesToDistroDir,
     minify,
     zip
 ];

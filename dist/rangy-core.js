@@ -2,10 +2,10 @@
  * Rangy, a cross-browser JavaScript range and selection library
  * http://code.google.com/p/rangy/
  *
- * Copyright 2014, Tim Down
+ * Copyright 2015, Tim Down
  * Licensed under the MIT license.
- * Version: 1.3alpha.530.d3d442d
- * Build date: 21 May 2014
+ * Version: 1.3alpha.531.f574d3c
+ * Build date: 18 January 2015
  */
 
 (function(global) {
@@ -75,7 +75,7 @@
     var modules = {};
 
     var api = {
-        version: "1.3alpha.530.d3d442d",
+        version: "1.3alpha.531.f574d3c",
         initialized: false,
         supported: true,
 
