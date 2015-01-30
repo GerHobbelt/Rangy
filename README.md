@@ -113,9 +113,9 @@ will work to some degree. Also included are workarounds for some known flaws in 
 How to build from source
 ------------------------
 
-- Make ure you have NodeJS and NPM installed
+- Make sure you have NodeJS and NPM installed
 - run `npm install` to install all required packages
-- run `node builder/build.js` from the repository root directory
+- run `npm run build` from the repository root directory
 
 The generated output (the build) is then available in the (automatically created) `build/` directory under its own subdirectory, e.g. `build/rangy-1.3alpha.525.876bad6/`
 
