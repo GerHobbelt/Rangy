@@ -161,12 +161,12 @@
         if (positionsToPreserve) {
             for (var i = 0, position; position = positionsToPreserve[i++]; ) {
                 // Handle case where position was inside the portion of node after the split point
-                if (position.node == node && position.offset > index) {
+                if (position.node === node && position.offset > index) {
                     position.node = newNode;
                     position.offset -= index;
                 }
                 // Handle the case where the position is a node offset within node's parent
-                else if (position.node == node.parentNode && position.offset > getNodeIndex(node)) {
+                else if (position.node === node.parentNode && position.offset > getNodeIndex(node)) {
                     ++position.offset;
                 }
             }
@@ -260,7 +260,7 @@
     function comparePoints(nodeA, offsetA, nodeB, offsetB) {
         // See http://www.w3.org/TR/DOM-Level-2-Traversal-Range/ranges.html#Level-2-Range-Comparing
         var nodeC, root, childA, childB, n;
-        if (nodeA == nodeB) {
+        if (nodeA === nodeB) {
             log.debug("case 1");
             // Case 1: nodes are the same
             return offsetA === offsetB ? 0 : (offsetA < offsetB) ? -1 : 1;
@@ -414,7 +414,7 @@
 
     DomPosition.prototype = {
         equals: function(pos) {
-            return !!pos && this.node === pos.node && this.offset == pos.offset;
+            return !!pos && this.node === pos.node && this.offset === pos.offset;
         },
 
         inspect: function() {

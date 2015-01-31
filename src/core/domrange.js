@@ -59,7 +59,7 @@
         assertRangeValid(rangeA);
         assertRangeValid(rangeB);
 
-        if (getRangeDocument(rangeB) != getRangeDocument(rangeA)) {
+        if (getRangeDocument(rangeB) !== getRangeDocument(rangeA)) {
             throw new DOMException("WRONG_DOCUMENT_ERR");
         }
 
@@ -174,12 +174,12 @@
             // Don't include a boundary container if it is a character data node and the range does not contain any
             // of its character data. See issue 190.
             var sc = range.startContainer;
-            if (node == sc && isCharacterDataNode(sc) && range.startOffset === sc.length) {
+            if (node === sc && isCharacterDataNode(sc) && range.startOffset === sc.length) {
                 return;
             }
 
             var ec = range.endContainer;
-            if (node == ec && isCharacterDataNode(ec) && range.endOffset === 0) {
+            if (node === ec && isCharacterDataNode(ec) && range.endOffset === 0) {
                 return;
             }
 
@@ -503,7 +503,7 @@
             if (startEndSame) {
                 eo -= so;
                 ec = sc;
-            } else if (ec == sc.parentNode && eo >= getNodeIndex(sc)) {
+            } else if (ec === sc.parentNode && eo >= getNodeIndex(sc)) {
                 eo++;
             }
             so = 0;
@@ -951,7 +951,7 @@
             if (node !== range.startContainer || offset !== range.startOffset) {
                 // Check the root containers of the range and the new boundary, and also check whether the new boundary
                 // is after the current end. In either case, collapse the range to the new position
-                if (getRootContainer(node) != getRootContainer(ec) || comparePoints(node, offset, ec, eo) === 1) {
+                if (getRootContainer(node) !== getRootContainer(ec) || comparePoints(node, offset, ec, eo) === 1) {
                     ec = node;
                     eo = offset;
                 }
@@ -964,7 +964,7 @@
             if (node !== range.endContainer || offset !== range.endOffset) {
                 // Check the root containers of the range and the new boundary, and also check whether the new boundary
                 // is after the current end. In either case, collapse the range to the new position
-                if (getRootContainer(node) != getRootContainer(sc) || comparePoints(node, offset, sc, so) === -1) {
+                if (getRootContainer(node) !== getRootContainer(sc) || comparePoints(node, offset, sc, so) === -1) {
                     sc = node;
                     so = offset;
                 }
@@ -1098,10 +1098,10 @@
                         so = sibling.length;
                         node.insertData(0, sibling.data);
                         sibling.parentNode.removeChild(sibling);
-                        if (sc == ec) {
+                        if (sc === ec) {
                             eo += so;
                             ec = sc;
-                        } else if (ec == node.parentNode) {
+                        } else if (ec === node.parentNode) {
                             var nodeIndex = getNodeIndex(node);
                             if (eo === nodeIndex) {
                                 ec = node;

@@ -9,10 +9,10 @@
  */
 
 (function(factory, root) {
-    if (typeof define == "function" && define.amd) {
+    if (typeof define === "function" && define.amd) {
         // AMD. Register as an anonymous module.
         define(factory);
-    } else if (typeof module != "undefined" && typeof exports == "object") {
+    } else if (typeof module !== "undefined" && typeof exports === "object") {
         // Node/CommonJS style
         module.exports = factory();
     } else {
@@ -85,7 +85,7 @@
 
     var modules = {};
 
-    var isBrowser = (typeof window != UNDEFINED && typeof document != UNDEFINED);
+    var isBrowser = (typeof window !== UNDEFINED && typeof document !== UNDEFINED);
 
     var util = {
         isHostMethod: isHostMethod,
@@ -110,12 +110,12 @@
             alertOnFail: true,
             alertOnWarn: false,
             preferTextRange: false,
-            autoInitialize: (typeof rangyAutoInitialize == UNDEFINED) ? true : rangyAutoInitialize
+            autoInitialize: (typeof rangyAutoInitialize === UNDEFINED) ? true : rangyAutoInitialize
         }
     };
 
     function consoleLog(msg) {
-        if (typeof console != UNDEFINED && isHostMethod(console, "log")) {
+        if (typeof console !== UNDEFINED && isHostMethod(console, "log")) {
             console.log(msg);
         }
     }

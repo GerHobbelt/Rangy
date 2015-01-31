@@ -73,7 +73,7 @@
             var doc = getWindow(winParam, "isSelectionValid").document, nativeSel = doc.selection;
 
             // Check whether the selection TextRange is actually contained within the correct document
-            return (nativeSel.type !== "None" || getDocument(nativeSel.createRange().parentElement()) == doc);
+            return (nativeSel.type !== "None" || getDocument(nativeSel.createRange().parentElement()) === doc);
         };
     } else if (implementsWinGetSelection) {
         getNativeSelection = getWinSelection;
@@ -395,7 +395,7 @@
             sel = cached.selection;
             if (action === "deleteAll") {
                 deleteProperties(sel);
-            } else if (cached.win == win) {
+            } else if (cached.win === win) {
                 if (action === "delete") {
                     cachedRangySelections.splice(i, 1);
                     return true;
@@ -679,7 +679,7 @@
 
             // Now check the direction. Checking the anchor position is the same is enough since we're checking all the
             // ranges after this
-            if (this.anchorNode != oldAnchorNode || this.anchorOffset !== oldAnchorOffset) {
+            if (this.anchorNode !== oldAnchorNode || this.anchorOffset !== oldAnchorOffset) {
                 log.debug("Selection.refresh: anchor different, so selection has changed");
                 return true;
             }
@@ -772,7 +772,7 @@
     };
 
     function assertNodeInSameDocument(sel, node) {
-        if (sel.win.document != getDocument(node)) {
+        if (sel.win.document !== getDocument(node)) {
             throw new DOMException("WRONG_DOCUMENT_ERR");
         }
     }

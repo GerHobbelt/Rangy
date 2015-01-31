@@ -27,7 +27,8 @@ var modules = [
     "rangy-serializer.js",
     "rangy-selectionsaverestore.js",
     "rangy-textrange.js",
-    "rangy-highlighter.js"
+    "rangy-highlighter.js",
+    "rangy-util.js"
 ];
 
 var allScripts = [coreFilename].concat(modules);
@@ -144,7 +145,13 @@ var globalObjectGetterCode = "/* Ridiculous nonsense to get the global object in
 
 function assembleCoreScript() {
     // Read in the list of files to build
-    var fileNames = ["core.js", "dom.js", "domrange.js", "wrappedrange.js", "wrappedselection.js"];
+    var fileNames = [
+        "core.js", 
+        "dom.js", 
+        "domrange.js", 
+        "wrappedrange.js", 
+        "wrappedselection.js"
+    ];
     var files = {};
     fileNames.forEach(function(fileName) {
         files[fileName] = fs.readFileSync(srcDir + "core/" + fileName, FILE_ENCODING);
@@ -170,10 +177,10 @@ function copyModuleScripts() {
             //var dependenciesArray = eval(dependencies);
             return [
                 '(function(factory, root) {',
-                '    if (typeof define == "function" && define.amd) {',
+                '    if (typeof define === "function" && define.amd) {',
                 '        // AMD. Register as an anonymous module with a dependency on Rangy.',
                 '        define(["./rangy-core"], factory);',
-                '    } else if (typeof module != "undefined" && typeof exports == "object") {',
+                '    } else if (typeof module !== "undefined" && typeof exports === "object") {',
                 '        // Node/CommonJS style',
                 '        module.exports = factory( require("rangy") );',
                 '    } else {',

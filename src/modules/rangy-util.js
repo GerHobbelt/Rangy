@@ -38,7 +38,7 @@ rangy.createModule("Util", ["WrappedSelection"], function(api, module) {
         var lastNode = frag.lastChild;
         range.insertNode(frag);
         if (lastNode) {
-            range.setStartAfter(lastNode)
+            range.setStartAfter(lastNode);
         }
         this.setSingleRange(range);
     };
@@ -73,7 +73,7 @@ rangy.createModule("Util", ["WrappedSelection"], function(api, module) {
 
     rangeProto.selectSelectedTextElements = (function() {
         function isInlineElement(node) {
-            return node.nodeType == 1 && api.dom.getComputedStyleProperty(node, "display") == "inline";
+            return node.nodeType === 1 && api.dom.getComputedStyleProperty(node, "display") === "inline";
         }
 
         function getOutermostNodeContainingText(range, node) {

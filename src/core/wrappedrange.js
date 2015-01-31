@@ -293,9 +293,9 @@
             range = textRange.duplicate();
             range.collapse(false);
             var endEl = range.parentElement();
-            var startEndContainer = (startEl == endEl) ? startEl : dom.getCommonAncestor(startEl, endEl);
+            var startEndContainer = (startEl === endEl) ? startEl : dom.getCommonAncestor(startEl, endEl);
 
-            return startEndContainer == parentEl ? startEndContainer : dom.getCommonAncestor(parentEl, startEndContainer);
+            return startEndContainer === parentEl ? startEndContainer : dom.getCommonAncestor(parentEl, startEndContainer);
         };
 
         var textRangeIsCollapsed = function(textRange) {
@@ -343,7 +343,7 @@
 
             var comparison, workingComparisonType = isStart ? "StartToStart" : "StartToEnd";
             var previousNode, nextNode, boundaryPosition, boundaryNode;
-            var start = (startInfo && startInfo.containerElement == containerElement) ? startInfo.nodeIndex : 0;
+            var start = (startInfo && startInfo.containerElement === containerElement) ? startInfo.nodeIndex : 0;
             var childNodeCount = containerElement.childNodes.length;
             var end = childNodeCount;
 
