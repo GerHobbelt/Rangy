@@ -83,6 +83,16 @@
         return isHostObject(doc, "body") ? doc.body : doc.getElementsByTagName("body")[0];
     }
 
+    var forEach = [].forEach ?
+        function(arr, func) {
+            arr.forEach(func);
+        } :
+        function(arr, func) {
+            for (var i = 0, len = arr.length; i < len; ++i) {
+                func(arr[i], i);
+            }
+        };
+
     var modules = {};
 
     var isBrowser = (typeof window !== UNDEFINED && typeof document !== UNDEFINED);
@@ -95,7 +105,8 @@
         areHostObjects: areHostObjects,
         areHostProperties: areHostProperties,
         isTextRange: isTextRange,
-        getBody: getBody
+        getBody: getBody,
+        forEach: forEach
     };
 
     var api = {
@@ -107,7 +118,7 @@
         features: {},
         modules: modules,
         config: {
-            alertOnFail: true,
+            alertOnFail: false,
             alertOnWarn: false,
             preferTextRange: false,
             autoInitialize: (typeof rangyAutoInitialize === UNDEFINED) ? true : rangyAutoInitialize
@@ -175,7 +186,7 @@
     } else {
         fail("hasOwnProperty not supported");
     }
-    
+
     // Test whether we're in a browser and bail out if not
     if (!isBrowser) {
         fail("Rangy can only run in a browser");
@@ -297,6 +308,24 @@
         }
     }
 
+    function deprecationNotice(deprecated, replacement, module) {
+        if (module) {
+            deprecated += " in module " + module.name;
+        }
+        api.warn("DEPRECATED: " + deprecated + " is deprecated. Please use " +
+        replacement + " instead.");
+    }
+
+    function createAliasForDeprecatedMethod(owner, deprecated, replacement, module) {
+        owner[deprecated] = function() {
+            deprecationNotice(deprecated, replacement, module);
+            return owner[replacement].apply(owner, util.toArray(arguments));
+        };
+    }
+
+    util.deprecationNotice = deprecationNotice;
+    util.createAliasForDeprecatedMethod = createAliasForDeprecatedMethod;
+
     // Allow external scripts to initialize this library in case it's loaded after the document has loaded
     api.init = init;
 
@@ -327,6 +356,7 @@
 
     if (isBrowser) {
         api.shim = api.createMissingNativeApi = shim;
+        createAliasForDeprecatedMethod(api, "createMissingNativeApi", "shim");
     }
 
     function Module(name, dependencies, initializer) {
@@ -354,16 +384,16 @@
                     throw new Error("required module '" + moduleName + "' not supported");
                 }
             }
-            
+
             // Now run initializer
             this.initializer(this);
         },
-        
+
         fail: function(reason) {
             this.initialized = true;
             this.supported = false;
             log.error("Module '" + this.name + "' failed to load: " + reason);
-            throw new Error("Module '" + this.name + "' failed to load: " + reason);
+            throw new Error(reason);
         },
 
         warn: function(msg) {
@@ -371,7 +401,7 @@
         },
 
         deprecationNotice: function(deprecated, replacement) {
-            api.warn("DEPRECATED: " + deprecated + " in module " + this.name + "is deprecated. Please use " +
+            api.warn("DEPRECATED: " + deprecated + " in module " + this.name + " is deprecated. Please use " +
                 replacement + " instead");
         },
 
@@ -379,7 +409,7 @@
             return new Error("Error in Rangy " + this.name + " module: " + msg);
         }
     };
-    
+
     function createModule(name, dependencies, initFunc) {
         var newModule = new Module(name, dependencies, function(module) {
             if (!module.initialized) {

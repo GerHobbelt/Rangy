@@ -8,9 +8,9 @@ var jshint = require("jshint");
 var archiver = require("archiver");
 
 var FILE_ENCODING = "utf-8";
+var indentation = "    ";
 
 var buildSpec = {
-    baseVersion: "1.3.0-alpha",
     gitUrl: "https://github.com/GerHobbelt/rangy.git",
     gitBranch: "master"
 };
@@ -117,28 +117,17 @@ function createBuildDir() {
 // }
 
 function getVersion() {
-    console.log("Getting version from Git repo");
-    exec("git describe", function(error, stdout, stderr) {
-        console.log(error, stdout, stderr);
-        //var result = /^.*-([\d]+)-.*$/.exec( stdout.trim() );
-        //var commitNumber = parseInt(result[1]);
-        //var now = new Date();
-        //buildVersion = buildSpec.baseVersion + "." + [now.getFullYear(), ("" + (101 + now.getMonth())).slice(1), ("" + (100 + now.getDate())).slice(1)].join("");
-
-        console.log("Getting version from package.json");
-        buildVersion = JSON.parse( fs.readFileSync("package.json")).version;
-        
-        zipDir = buildDir + "rangy-" + buildVersion + "/";
-        fs.mkdirSync(zipDir);
-        uncompressedBuildDir = zipDir + "uncompressed/";
-        fs.mkdirSync(uncompressedBuildDir);
-        console.log("Got git version " + stdout);
-        callback();
-    });
+    buildVersion = JSON.parse( fs.readFileSync("package.json")).version;
+    console.log("Got version " + buildVersion + " from package.json");
+    zipDir = buildDir + "rangy-" + buildVersion + "/";
+    fs.mkdirSync(zipDir);
+    uncompressedBuildDir = zipDir + "uncompressed/";
+    fs.mkdirSync(uncompressedBuildDir);
+    callback();
 }
 
 function indent(str) {
-    return str.split(/\r?\n/g).join("\n    ").replace(/\n    \n/g, "\n\n");
+    return str.split(/\r?\n/g).join("\n" + indentation).replace( new RegExp("\n" + indentation + "\n", "g"), "\n\n");
 }
 
 var globalObjectGetterCode = "/* Ridiculous nonsense to get the global object in any environment follows */(function(f) { return f('return this;')(); })(Function)";
@@ -163,7 +152,7 @@ function assembleCoreScript() {
     });
 
     fs.writeFileSync(uncompressedBuildDir + coreFilename, combinedScript, FILE_ENCODING);
-    
+
     console.log("Assembled core script");
     callback();
 }
@@ -188,7 +177,7 @@ function copyModuleScripts() {
                 '        factory(root.rangy);',
                 '    }',
                 '})(function(rangy) {'
-            ].join("\n") + indent(code) + "\n}, this);";
+            ].join("\n") + indent(code) + "\n" + indentation + "return rangy;\n}, this);";
         });
 
         fs.writeFileSync(uncompressedBuildDir + moduleFile, moduleCode, FILE_ENCODING);
@@ -239,10 +228,10 @@ function substituteBuildVars() {
         contents = contents.replace(/%%build:([^%]+)%%/g, function(matched, buildVarName) {
             return buildVars[buildVarName];
         });
-        
+
         // Now do replacements specified by build directives
         contents = contents.replace(/\/\*\s?build:replaceWith\((.*?)\)\s?\*\/.*?\*\s?build:replaceEnd\s?\*\//g, "$1");
-        
+
         fs.writeFileSync(file, contents, FILE_ENCODING);
     }
 
