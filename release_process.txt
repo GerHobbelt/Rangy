@@ -4,7 +4,7 @@
 - Commit and push
 - Update version number in bower.json in rangy-release
 - Update code files in rangy-release
-- Update files in lib
+- Update files in lib  (run `node builder/build.js`)
 - Create release in GitHub. Probably an API to do this. Tag and provide release notes as .md file as script argument
 - Update npm with `npm publish`
 - Update Bower by adding tag to rangy-release and pushing tags to GitHub
