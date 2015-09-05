@@ -44,50 +44,50 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
         return !!fullClassName && new RegExp("(?:^|\\s)" + className + "(?:\\s|$)").test(fullClassName);
     }
 
-    // Inefficient, inelegant nonsense for IE's svg element, which has no classList and non-HTML className implementation
-    function hasClass(el, className) {
-        if (typeof el.classList == "object") {
+    var hasClass, addClass, removeClass, getClass;
+
+    // Is this a fully standards compliant browser environment? If so, provide the quick and easy functions, rather than the complicated stop-gap fixers further below:        
+    if (api.util.isHostObject(document.createElement("div"), "classList") && api.util.isHostObject(document.createElement("svg"), "classList") && typeof document.createElement("svg").className === "string") {
+        hasClass = function(el, className) {
             return el.classList.contains(className);
-        } else {
-            var classNameSupported = (typeof el.className == "string");
-            var elClass = classNameSupported ? el.className : el.getAttribute("class");
-            return classNameContainsClass(elClass, className);
-        }
-    }
+        };
 
-    function addClass(el, className) {
-        if (typeof el.classList == "object") {
-            el.classList.add(className);
-        } else {
-            var classNameSupported = (typeof el.className == "string");
-            var elClass = classNameSupported ? el.className : el.getAttribute("class");
-            if (elClass) {
-                if (!classNameContainsClass(elClass, className)) {
-                    elClass += " " + className;
-                }
-            } else {
-                elClass = className;
-            }
-            if (classNameSupported) {
-                el.className = elClass;
-            } else {
-                el.setAttribute("class", elClass);
-            }
-        }
-    }
+        addClass = function(el, className) {
+            return el.classList.add(className);
+        };
 
-    var removeClass = (function() {
-        function replacer(matched, whiteSpaceBefore, whiteSpaceAfter) {
-            return (whiteSpaceBefore && whiteSpaceAfter) ? " " : "";
-        }
+        removeClass = function(el, className) {
+            return el.classList.remove(className);
+        };
 
-        return function(el, className) {
+        getClass = function (el) {
+            return el.className;
+        };
+    } else {
+        // Inefficient, inelegant nonsense for IE's svg element, which has no classList and non-HTML className implementation
+        hasClass = function(el, className) {
             if (typeof el.classList == "object") {
-                el.classList.remove(className);
+                return el.classList.contains(className);
             } else {
                 var classNameSupported = (typeof el.className == "string");
                 var elClass = classNameSupported ? el.className : el.getAttribute("class");
-                elClass = elClass.replace(new RegExp("(^|\\s)" + className + "(\\s|$)"), replacer);
+                return classNameContainsClass(elClass, className);
+            }
+        };
+
+        addClass = function(el, className) {
+            if (typeof el.classList == "object") {
+                el.classList.add(className);
+            } else {
+                var classNameSupported = (typeof el.className == "string");
+                var elClass = classNameSupported ? el.className : el.getAttribute("class");
+                if (elClass) {
+                    if (!classNameContainsClass(elClass, className)) {
+                        elClass += " " + className;
+                    }
+                } else {
+                    elClass = className;
+                }
                 if (classNameSupported) {
                     el.className = elClass;
                 } else {
@@ -95,11 +95,32 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                 }
             }
         };
-    })();
 
-    function getClass(el) {
-        var classNameSupported = (typeof el.className == "string");
-        return classNameSupported ? el.className : el.getAttribute("class");
+        removeClass = (function() {
+            function replacer(matched, whiteSpaceBefore, whiteSpaceAfter) {
+                return (whiteSpaceBefore && whiteSpaceAfter) ? " " : "";
+            }
+
+            return function(el, className) {
+                if (typeof el.classList == "object") {
+                    el.classList.remove(className);
+                } else {
+                    var classNameSupported = (typeof el.className == "string");
+                    var elClass = classNameSupported ? el.className : el.getAttribute("class");
+                    elClass = elClass.replace(new RegExp("(^|\\s)" + className + "(\\s|$)"), replacer);
+                    if (classNameSupported) {
+                        el.className = elClass;
+                    } else {
+                        el.setAttribute("class", elClass);
+                    }
+                }
+            };
+        })();
+
+        getClass = function (el) {
+            var classNameSupported = (typeof el.className == "string");
+            return classNameSupported ? el.className : el.getAttribute("class");
+        };
     }
 
     function sortClassName(className) {
@@ -602,7 +623,7 @@ rangy.createModule("ClassApplier", ["WrappedSelection"], function(api, module) {
                     propValue = props[p];
                     elPropValue = el[p];
 
-                    // Special case for class. The copied properties object has the applier's class as well as its own
+                    // Special case for class. The copied properties object has the applier's CSS class as well as its own
                     // to simplify checks when removing styling elements
                     if (p === "className") {
                         addClass(el, propValue);
